@@ -9,6 +9,8 @@ from layers.SpatioTemporalLSTMCellv2 import SpatioTemporalLSTMCell as STLSTM
 from layers.MIMBlock import MIMBlock as MIMblock
 from layers.MIMN import MIMN as MIMN
 
+from data_provider import datasets_factory
+
 from models.mim import MIM
 
 
@@ -78,8 +80,20 @@ def main():
     print(model)
     print('The model is loaded!!!!\n')
 
-    #    with torch.set_grad_enabled(True):
-    #        outputs = model(inputs)
+    # 데이터셋 로드
+    train_input_handle, test_input_handle = datasets_factory.data_provider(args.dataset_name,
+                                                                           args.train_data_paths,
+                                                                           args.valid_data_paths,
+                                                                           args.batch_size * args.n_gpu,
+                                                                           args.img_width,
+                                                                           seq_length=args.total_length,
+                                                                           is_training=True)  # n 1 64 64 로 나옴
+
+    with torch.set_grad_enabled(True):
+        if args.pretrained_model:
+            model.load(args.pretrained_model)
+
+        outputs = model(inputs)
 
 
 if __name__ == "__main__":
