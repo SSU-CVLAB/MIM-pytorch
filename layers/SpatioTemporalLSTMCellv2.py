@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class SpatioTemporalLSTMCell(nn.Module):  # ST-LSTM
     def __init__(self, layer_name, filter_size, num_hidden_in, num_hidden,
-                 seq_shape, x_shape_in, tln=False, initializer=None):
+                 seq_shape, x_shape_in, tln=False, device='cpu', initializer=None):
         super(SpatioTemporalLSTMCell, self).__init__()
 
         '''
@@ -27,6 +27,7 @@ class SpatioTemporalLSTMCell(nn.Module):  # ST-LSTM
         self.x_shape_in = x_shape_in
         self.layer_norm = tln
         self._forget_bias = 1.0
+        self.device = device
 
         # 레이어 정의
         # h
@@ -60,7 +61,7 @@ class SpatioTemporalLSTMCell(nn.Module):  # ST-LSTM
 
     def init_state(self):
         return torch.zeros((self.batch, self.num_hidden, self.height, self.width),
-                           dtype=torch.float32)
+                           dtype=torch.float32, device=self.device)
 
     def forward(self, x, h, c, m):
         # x [batch, in_channels, in_height, in_width]
@@ -76,7 +77,7 @@ class SpatioTemporalLSTMCell(nn.Module):  # ST-LSTM
         # 네트워크 출력을 계산한다.
         t_cc = self.t_cc(h)
         s_cc = self.s_cc(m)
-        x = torch.tensor(x, dtype=torch.float32)
+        x = torch.tensor(x, dtype=torch.float32, device=self.device)
 
         x_cc = self.x_cc(x)
 

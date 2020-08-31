@@ -21,6 +21,7 @@ class MIM(nn.Module):  # ST-LSTM
         self.total_length = args.total_length  # 20
         self.input_length = args.input_length  # 10
         self.tln = True
+        self.device = args.device
 
         # 모델 파라미터 초기화
         self.gen_images = []
@@ -30,7 +31,7 @@ class MIM(nn.Module):  # ST-LSTM
         self.hidden_state = []
         self.cell_state_diff = []
         self.hidden_state_diff = []
-        self.shape = shape  # [8, 20, 1, 64, 64]
+        self.shape = shape
         self.output_channels = shape[-3]  # 1
 
         for i in range(self.num_layers):
@@ -46,7 +47,8 @@ class MIM(nn.Module):  # ST-LSTM
                                             int(self.num_hidden[i]),
                                             self.shape,
                                             self.output_channels,  # 64
-                                            tln=self.tln)
+                                            tln=self.tln,
+                                            device=self.device)
             else:  # MIM-block
                 new_st_lstm_layer = MIM_block('ST_LSTM_' + str(i + 1),
                                               self.filter_size,
@@ -54,7 +56,8 @@ class MIM(nn.Module):  # ST-LSTM
                                               self.num_hidden[i],
                                               self.shape,
                                               self.num_hidden[i - 1],
-                                              tln=self.tln)
+                                              tln=self.tln,
+                                              device=self.device)
             self.st_lstm_layer.append(new_st_lstm_layer)
             self.cell_state.append(None)  # 메모리
             self.hidden_state.append(None)  # state
@@ -64,7 +67,8 @@ class MIM(nn.Module):  # ST-LSTM
                                       self.filter_size,
                                       self.num_hidden[i + 1],
                                       self.shape,
-                                      tln=self.tln)
+                                      tln=self.tln,
+                                      device=self.device)
             self.st_lstm_layer_diff.append(new_st_lstm_layer)
             self.cell_state_diff.append(None)  # 메모리
             self.hidden_state_diff.append(None)  # state
@@ -104,7 +108,7 @@ class MIM(nn.Module):  # ST-LSTM
                                      dtype=torch.double) * x_gen
 
             preh = self.hidden_state[0]  # 초기화 상태
-            self.hidden_state[0], self.cell_state[0], self.st_memory = self.stlstm_layer[0](
+            self.hidden_state[0], self.cell_state[0], self.st_memory = self.st_lstm_layer[0](
                 # ST_LSTM out: hidden_state[0], cell_state[0], st_memory
                 x_gen, self.hidden_state[0], self.cell_state[0], self.st_memory)
 
@@ -113,19 +117,19 @@ class MIM(nn.Module):  # ST-LSTM
                 print('i: ' + str(i))
                 if time_step > 0:
                     if i == 1:
-                        self.hidden_state_diff[i - 1], self.cell_state_diff[i - 1] = self.stlstm_layer_diff[i - 1](
+                        self.hidden_state_diff[i - 1], self.cell_state_diff[i - 1] = self.st_lstm_layer_diff[i - 1](
                             # 먼저 MIM_N 계산
                             self.hidden_state[i - 1] - preh, self.hidden_state_diff[i - 1], self.cell_state_diff[i - 1])
                     else:
-                        self.hidden_state_diff[i - 1], self.cell_state_diff[i - 1] = self.stlstm_layer_diff[i - 1](
+                        self.hidden_state_diff[i - 1], self.cell_state_diff[i - 1] = self.st_lstm_layer_diff[i - 1](
                             # 먼저 MIM_N 계산
                             self.hidden_state_diff[i - 2], self.hidden_state_diff[i - 1], self.cell_state_diff[i - 1])
                 else:
-                    self.stlstm_layer_diff[i - 1](torch.zeros_like(self.hidden_state[i - 1]), None, None)
+                    self.st_lstm_layer_diff[i - 1](torch.zeros_like(self.hidden_state[i - 1]), None, None)
 
                 #  MIM_block	계산 마지막hidden_layer state
                 preh = self.hidden_state[i]
-                self.hidden_state[i], self.cell_state[i], self.st_memory = self.stlstm_layer[i](  # MIM_block
+                self.hidden_state[i], self.cell_state[i], self.st_memory = self.st_lstm_layer[i](  # MIM_block
                     self.hidden_state[i - 1], self.hidden_state_diff[i - 1], self.hidden_state[i], self.cell_state[i],
                     self.st_memory)
 

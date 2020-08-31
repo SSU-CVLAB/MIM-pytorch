@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class MIMN(nn.Module):
-    def __init__(self, layer_name, filter_size, num_hidden, seq_shape, tln=True, initializer=0.001):
+    def __init__(self, layer_name, filter_size, num_hidden, seq_shape, tln=True, device='cpu', initializer=0.001):
         super(MIMN, self).__init__()
         """Initialize the basic Conv LSTM cell.
 		Args:
@@ -20,6 +20,7 @@ class MIMN(nn.Module):
         self.height = seq_shape[3]
         self.width = seq_shape[4]
         self._forget_bias = 1.0
+        self.device = device
 
         # h_t
         self.h_t = nn.Conv2d(self.num_hidden, self.num_hidden * 4, self.filter_size, 1, padding=2)
@@ -39,7 +40,7 @@ class MIMN(nn.Module):
 
     def init_state(self):
         shape = [self.batch, self.num_hidden, self.height, self.width]
-        return torch.zeros(shape, dtype=torch.float32)
+        return torch.zeros(shape, dtype=torch.float32, device=self.device)
 
     def forward(self, x, h_t, c_t):
 

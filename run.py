@@ -10,8 +10,10 @@ from layers.MIMBlock import MIMBlock as MIMblock
 from layers.MIMN import MIMN as MIMN
 
 from data_provider import datasets_factory
-
+from utils import preprocess
 from models.mim import MIM
+
+import trainer
 
 
 def parse_args():
@@ -35,7 +37,7 @@ def parse_args():
     parser.add_argument('--model_name', default='convlstm_net', type=str, help='The name of the architecture.')
     parser.add_argument('--pretrained_model', default='', type=str,
                         help='file of a pretrained model to initialize from.')
-    parser.add_argument('--num_hidden', default=[64,64,64,64],
+    parser.add_argument('--num_hidden', default=[64, 64, 64, 64],
                         help='COMMA separated number of units in a convlstm layer.')
     parser.add_argument('--filter_size', default=5, type=int, help='filter of a convlstm layer.')
     parser.add_argument('--stride', default=1, type=int, help='stride of a convlstm layer.')
@@ -61,10 +63,57 @@ def parse_args():
     # gpu
     parser.add_argument('--n_gpu', default=1, type=int, help='how many GPUs to distribute the training across.')
     parser.add_argument('--allow_gpu_growth', default=False, type=bool, help='allow gpu growth')
-    parser.add_argument('--img_height', default=0, type=int, help='input image height.')
+    parser.add_argument('--img_height', default=64, type=int, help='input image height.')
+    parser.add_argument('--device', default='cuda', type=str, help='Training device')
 
     args = parser.parse_args()
     return args
+
+
+def schedule_sampling(eta, itr, args):
+    if args.img_height > 0:
+        height = args.img_height
+    else:
+        height = args.img_width
+    zeros = np.zeros((args.batch_size,
+                      args.total_length - args.input_length - 1,
+                      args.patch_size ** 2 * args.img_channel,
+                      args.img_width // args.patch_size,
+                      height // args.patch_size))
+    if not args.scheduled_sampling:
+        return 0.0, zeros
+
+    if itr < args.sampling_stop_iter:  # 50000
+        eta -= args.sampling_changing_rate
+    else:
+        eta = 0.0
+
+    random_flip = np.random.random_sample((args.batch_size, args.total_length - args.input_length - 1))
+    true_token = (random_flip < eta)
+    ones = np.ones((args.patch_size ** 2 * args.img_channel,
+                    args.img_width // args.patch_size,
+                    height // args.patch_size))
+    zeros = np.zeros((args.patch_size ** 2 * args.img_channel,
+                      args.img_width // args.patch_size,
+                      height // args.patch_size))
+
+    real_input_flag = []
+    for i in range(args.batch_size):
+        for j in range(args.total_length - args.input_length - 1):
+            if true_token[i, j]:
+                real_input_flag.append(ones)
+            else:
+                real_input_flag.append(zeros)
+
+    # real_input_flag is list. so we should change to numpy array for reshaping
+    real_input_flag = np.array(real_input_flag)
+    real_input_flag = np.reshape(real_input_flag,
+                                 (args.batch_size,
+                                  args.total_length - args.input_length - 1,
+                                  args.patch_size ** 2 * args.img_channel,
+                                  args.img_width // args.patch_size,
+                                  height // args.patch_size))
+    return eta, real_input_flag
 
 
 def main():
@@ -73,7 +122,7 @@ def main():
 
     # 리소스 로드
     if torch.cuda.is_available():
-        device = torch.device("cuda:0")
+        device = torch.device(args.device)
     else:
         device = torch.device("cpu")
     model = MIM(args).to(device)
@@ -87,11 +136,35 @@ def main():
                                                                            args.batch_size * args.n_gpu,
                                                                            args.img_width,
                                                                            seq_length=args.total_length,
-                                                                           is_training=True)  # n 1 64 64 로 나옴
+                                                                           is_training=True)  # n 64 64 1 로 나옴
 
     with torch.set_grad_enabled(True):
         if args.pretrained_model:
             model.load(args.pretrained_model)
+
+        eta = args.sampling_start_value  # 1.0
+
+        for itr in range(1, args.max_iterations + 1):
+            if train_input_handle.no_batch_left():
+                train_input_handle.begin(do_shuffle=True)
+
+            ims = train_input_handle.get_batch()
+            ims_reverse = None
+            if args.reverse_img:
+                ims_reverse = ims[:, :, :, ::-1]
+                ims_reverse = preprocess.reshape_patch(ims_reverse, args.patch_size)
+            ims = preprocess.reshape_patch(ims, args.patch_size)
+            eta, real_input_flag = schedule_sampling(eta, itr, args)
+
+            loss = trainer.trainer(model, ims, real_input_flag, args, itr, ims_reverse, device)
+
+            if itr % args.snapshot_interval == 0:
+                model.save(itr)
+
+            if itr % args.test_interval == 0:
+                trainer.test(model, test_input_handle, args, itr)
+
+            train_input_handle.next()
 
         outputs = model(inputs)
 

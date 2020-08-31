@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class MIMBlock(nn.Module):
     def __init__(self, layer_name, filter_size, num_hidden_in, num_hidden,
-                 seq_shape, x_shape_in, tln=False, initializer=None):
+                 seq_shape, x_shape_in, tln=False, device='cpu', initializer=None):
         super(MIMBlock, self).__init__()
 
         """Initialize the basic Conv LSTM cell.
@@ -18,6 +18,7 @@ class MIMBlock(nn.Module):
         self.layer_name = layer_name
         self.filter_size = filter_size
         self.num_hidden_in = num_hidden_in
+        self.device = device
 
         self.num_hidden = num_hidden
         self.conv_lstm_c = None
@@ -65,7 +66,7 @@ class MIMBlock(nn.Module):
 
     def init_state(self):  # 초기화lstm hidden layer 상태
         return torch.zeros((self.batch, self.num_hidden, self.height, self.width),
-                           dtype=torch.float32)
+                           dtype=torch.float32, device=self.device)
 
     def MIMS(self, x, h_t, c_t):  # MIMS
         # h_t c_t[batch, in_height, in_width, num_hidden]
