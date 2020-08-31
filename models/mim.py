@@ -103,9 +103,9 @@ class MIM(nn.Module):  # ST-LSTM
             else:
                 # mask
                 x_gen = torch.tensor(schedual_sampling_bool[:, time_step - self.input_length],
-                                     dtype=torch.double) * images[:, time_step] + \
+                                     dtype=torch.double, device=self.device) * images[:, time_step] + \
                         torch.tensor(1 - schedual_sampling_bool[:, time_step - self.input_length],
-                                     dtype=torch.double) * x_gen
+                                     dtype=torch.double, device=self.device) * x_gen
 
             preh = self.hidden_state[0]  # 초기화 상태
             self.hidden_state[0], self.cell_state[0], self.st_memory = self.st_lstm_layer[0](
@@ -140,5 +140,7 @@ class MIM(nn.Module):  # ST-LSTM
 
         self.gen_images = torch.stack(self.gen_images, dim=1)
         loss_fn = nn.MSELoss()
-        loss = loss_fn(self.gen_images, torch.tensor(images[:, 1:]))
+        img = torch.tensor(images[:, 1:])
+        loss = loss_fn(self.gen_images, img)
+
         return self.gen_images, loss

@@ -40,7 +40,7 @@ class MIMN(nn.Module):
 
     def init_state(self):
         shape = [self.batch, self.num_hidden, self.height, self.width]
-        return torch.zeros(shape, dtype=torch.float32, device=self.device)
+        return torch.zeros(shape, dtype=torch.float32, device=self.device, requires_grad=True)
 
     def forward(self, x, h_t, c_t):
 

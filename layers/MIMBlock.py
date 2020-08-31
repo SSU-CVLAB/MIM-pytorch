@@ -66,8 +66,9 @@ class MIMBlock(nn.Module):
 
     def init_state(self):  # 초기화lstm hidden layer 상태
         return torch.zeros((self.batch, self.num_hidden, self.height, self.width),
-                           dtype=torch.float32, device=self.device)
+                           dtype=torch.float32, device=self.device, requires_grad=True)
 
+# 내일 weight 빼고 다 del로 넣어버리기
     def MIMS(self, x, h_t, c_t):  # MIMS
         # h_t c_t[batch, in_height, in_width, num_hidden]
         if h_t is None:

@@ -6,6 +6,7 @@ from skimage.measure import compare_ssim
 from utils import metrics
 from utils import preprocess
 import torch
+import torch.nn as nn
 
 
 def trainer(model, ims, real_input_flag, configs, itr, ims_reverse=None, device=None):
@@ -16,7 +17,8 @@ def trainer(model, ims, real_input_flag, configs, itr, ims_reverse=None, device=
     # ims_list=np.array(ims_list)  #to np.array
     # ims=np.array(ims)  #to np.array
     # cost = model.forward(ims_list[0], real_input_flag)
-    cost = model.forward(torch.tensor(ims), real_input_flag)
+    ims_tensor = torch.tensor(ims, device=device)
+    cost = model.forward(ims_tensor, real_input_flag)
 
     flag = 1
 
@@ -34,13 +36,25 @@ def trainer(model, ims, real_input_flag, configs, itr, ims_reverse=None, device=
             cost += model.forward(ims_rev, configs.lr, real_input_flag)
             flag += 1
 
-    cost = cost / flag
+    gen_image, tensor_loss = cost
 
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+    optimizer.zero_grad()
+    tensor_loss.backward(retain_graph=True)
+    optimizer.step()
+
+    loss = tensor_loss.item() / flag
     if itr % configs.display_interval == 0:
         print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'itr: ' + str(itr))
-        print('training loss: ' + str(cost))
+        print('training loss: ' + str(loss))
 
-    return cost
+    del tensor_loss
+    del gen_image
+    del cost
+    del ims_tensor
+
+    return loss
 
 
 def test(model, test_input_handle, configs, save_name):

@@ -61,7 +61,7 @@ class SpatioTemporalLSTMCell(nn.Module):  # ST-LSTM
 
     def init_state(self):
         return torch.zeros((self.batch, self.num_hidden, self.height, self.width),
-                           dtype=torch.float32, device=self.device)
+                           dtype=torch.float32, device=self.device, requires_grad=True)
 
     def forward(self, x, h, c, m):
         # x [batch, in_channels, in_height, in_width]

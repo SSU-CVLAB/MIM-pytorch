@@ -54,7 +54,7 @@ def parse_args():
                         help='whether to reverse the input frames while training.')
     parser.add_argument('--reverse_img', default=False, type=bool,
                         help='whether to reverse the input images while training.')
-    parser.add_argument('--batch_size', default=8, type=int, help='batch size for training.')
+    parser.add_argument('--batch_size', default=1, type=int, help='batch size for training.')
     parser.add_argument('--max_iterations', default=80000, type=int, help='max num of steps.')
     parser.add_argument('--display_interval', default=1, type=int, help='number of iters showing training loss.')
     parser.add_argument('--test_interval', default=1000, type=int, help='number of iters for test.')
@@ -127,7 +127,7 @@ def main():
         device = torch.device("cpu")
     model = MIM(args).to(device)
     print(model)
-    print('The model is loaded!!!!\n')
+    print('The model is loaded!\n')
 
     # 데이터셋 로드
     train_input_handle, test_input_handle = datasets_factory.data_provider(args.dataset_name,
@@ -143,6 +143,7 @@ def main():
             model.load(args.pretrained_model)
 
         eta = args.sampling_start_value  # 1.0
+
 
         for itr in range(1, args.max_iterations + 1):
             if train_input_handle.no_batch_left():
@@ -165,8 +166,6 @@ def main():
                 trainer.test(model, test_input_handle, args, itr)
 
             train_input_handle.next()
-
-        outputs = model(inputs)
 
 
 if __name__ == "__main__":
