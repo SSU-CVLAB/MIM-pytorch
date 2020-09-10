@@ -26,29 +26,29 @@ class MIMN(nn.Module):
         self.h_t = nn.Conv2d(self.num_hidden, self.num_hidden * 4, self.filter_size, 1, padding=2)
 
         # c_t
-        self.ct_weight = nn.Parameter(torch.randn((self.num_hidden * 2, self.height, self.width)))
+        # self.ct_weight = nn.Parameter(torch.randn((self.num_hidden * 2, self.height, self.width)))
 
         # x
         self.x = nn.Conv2d(self.num_hidden, self.num_hidden * 4, self.filter_size, 1, padding=2)
 
         # oc
-        self.oc_weight = nn.Parameter(torch.randn((self.num_hidden, self.height, self.width)))
+        # self.oc_weight = nn.Parameter(torch.randn((self.num_hidden, self.height, self.width)))
 
         # bn
         self.bn_h_concat = nn.BatchNorm2d(self.num_hidden * 4)
         self.bn_x_concat = nn.BatchNorm2d(self.num_hidden * 4)
 
-    def init_state(self):
-        shape = [self.batch, self.num_hidden, self.height, self.width]
-        return torch.zeros(shape, dtype=torch.float32, device=self.device, requires_grad=True)
+    # def init_state(self):
+    #     shape = [self.batch, self.num_hidden, self.height, self.width]
+    #     return torch.zeros(shape, dtype=torch.float32, device=self.device, requires_grad=True)
 
-    def forward(self, x, h_t, c_t):
+    def forward(self, x, h_t, c_t, ct_weight, oc_weight):
 
         # h c [batch, num_hidden, in_height, in_width]
-        if h_t is None:
-            h_t = self.init_state()
-        if c_t is None:
-            c_t = self.init_state()
+        # if h_t is None:
+        #     h_t = self.init_state()
+        # if c_t is None:
+        #     c_t = self.init_state()
 
         # 1
         h_concat = self.h_t(h_t)
@@ -57,7 +57,7 @@ class MIMN(nn.Module):
             h_concat = self.bn_h_concat(h_concat)
         i_h, g_h, f_h, o_h = torch.split(h_concat, self.num_hidden, 1)
 
-        ct_activation = torch.mul(c_t.repeat([1, 2, 1, 1]), self.ct_weight)
+        ct_activation = torch.mul(c_t.repeat([1, 2, 1, 1]), ct_weight)
         i_c, f_c = torch.split(ct_activation, self.num_hidden, 1)
 
         i_ = i_h + i_c
@@ -82,7 +82,7 @@ class MIMN(nn.Module):
         f_ = torch.sigmoid(f_ + self._forget_bias)
         c_new = f_ * c_t + i_ * torch.tanh(g_)
 
-        o_c = torch.mul(c_new, self.oc_weight)
+        o_c = torch.mul(c_new, oc_weight)
 
         h_new = torch.sigmoid(o_ + o_c) * torch.tanh(c_new)
 

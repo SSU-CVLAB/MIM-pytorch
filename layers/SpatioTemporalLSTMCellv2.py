@@ -59,26 +59,26 @@ class SpatioTemporalLSTMCell(nn.Module):  # ST-LSTM
         self.bn_s_cc = nn.BatchNorm2d(self.num_hidden * 4)
         self.bn_x_cc = nn.BatchNorm2d(self.num_hidden * 4)
 
-    def init_state(self):
-        return torch.zeros((self.batch, self.num_hidden, self.height, self.width),
-                           dtype=torch.float32, device=self.device, requires_grad=True)
+    # def init_state(self):
+    #     return torch.zeros((self.batch, self.num_hidden, self.height, self.width),
+    #                        dtype=torch.float32, device=self.device, requires_grad=True)
 
     def forward(self, x, h, c, m):
         # x [batch, in_channels, in_height, in_width]
         # h c m [batch, num_hidden, in_height, in_width]
 
-        if h is None:
-            h = self.init_state()
-        if c is None:
-            c = self.init_state()
-        if m is None:
-            m = self.init_state()
+        # if h is None:
+        #     h = self.init_state()
+        # if c is None:
+        #     c = self.init_state()
+        # if m is None:
+        #     m = self.init_state()
 
         # 네트워크 출력을 계산한다.
         t_cc = self.t_cc(h)
         s_cc = self.s_cc(m)
-        x = torch.tensor(x, dtype=torch.float32, device=self.device)
-
+        x = x.type(torch.cuda.FloatTensor)
+        # x = torch.tensor(x.clone(), dtype=torch.float32, device=self.device)
         x_cc = self.x_cc(x)
 
         if self.layer_norm:

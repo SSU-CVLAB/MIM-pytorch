@@ -5,8 +5,6 @@ from layers.SpatioTemporalLSTMCellv2 import SpatioTemporalLSTMCell as ST_LSTM
 from layers.MIMBlock import MIMBlock as MIM_block
 from layers.MIMN import MIMN as MIM_N
 
-from torchviz import make_dot
-
 
 class MIM(nn.Module):  # ST-LSTM
     def __init__(self, args):
@@ -28,13 +26,8 @@ class MIM(nn.Module):  # ST-LSTM
         self._forget_bias = 1.0
 
         # 모델 파라미터 초기화
-        self.gen_images = []
         self.st_lstm_layer = nn.ModuleList()
         self.st_lstm_layer_diff = nn.ModuleList()
-        self.cell_state = []
-        self.hidden_state = []
-        self.cell_state_diff = []
-        self.hidden_state_diff = []
         self.shape = shape
         self.output_channels = shape[-3]  # 1
 
@@ -63,8 +56,8 @@ class MIM(nn.Module):  # ST-LSTM
                                               tln=self.tln,
                                               device=self.device)
             self.st_lstm_layer.append(new_st_lstm_layer)
-            self.cell_state.append(None)  # 메모리
-            self.hidden_state.append(None)  # state
+            # self.cell_state.append(None)  # 메모리
+            # self.hidden_state.append(None)  # state
 
         for i in range(self.num_layers - 1):  # 추가 MIMN
             new_st_lstm_layer = MIM_N('ST_LSTM_diff' + str(i + 1),
@@ -74,10 +67,10 @@ class MIM(nn.Module):  # ST-LSTM
                                       tln=self.tln,
                                       device=self.device)
             self.st_lstm_layer_diff.append(new_st_lstm_layer)
-            self.cell_state_diff.append(None)  # 메모리
-            self.hidden_state_diff.append(None)  # state
+            # self.cell_state_diff.append(None)  # 메모리
+            # self.hidden_state_diff.append(None)  # state
 
-        self.st_memory = None
+        # self.st_memory = None
 
         # 이미지 생성
         self.x_gen = nn.Conv2d(self.num_hidden[self.num_layers - 1],
@@ -97,8 +90,9 @@ class MIM(nn.Module):  # ST-LSTM
         self.network.load_state_dict(stats['net_param'])
 
     # def train(self,args)
-    def forward(self, images, schedual_sampling_bool):
-        self.gen_images = []
+    def forward(self, images, schedual_sampling_bool, hidden_state, cell_state, hidden_state_diff, cell_state_diff,
+                st_memory, conv_lstm_c, MIMB_oc_w, MIMB_ct_w, MIMN_oc_w, MIMN_ct_w):
+        gen_images = []
         for time_step in range(self.total_length - 1):  # 시간이 길다
             print('time_step: ' + str(time_step))
 
@@ -111,49 +105,40 @@ class MIM(nn.Module):  # ST-LSTM
                         torch.tensor(1 - schedual_sampling_bool[:, time_step - self.input_length],
                                      dtype=torch.double, device=self.device) * x_gen
 
-            preh = self.hidden_state[0]  # 초기화 상태
-            self.hidden_state[0], self.cell_state[0], self.st_memory = self.st_lstm_layer[0](
+            preh = hidden_state[0]  # 초기화 상태
+            hidden_state[0], cell_state[0], st_memory = self.st_lstm_layer[0](
                 # ST_LSTM out: hidden_state[0], cell_state[0], st_memory
-                x_gen, self.hidden_state[0], self.cell_state[0], self.st_memory)
+                x_gen, hidden_state[0], cell_state[0], st_memory)
 
             # MIM_block
             for i in range(1, self.num_layers):
                 print('i: ' + str(i))
                 if time_step > 0:
                     if i == 1:
-                        # make_dot(self.st_lstm_layer_diff[i - 1](
-                        #         self.hidden_state[i - 1] - preh,
-                        #         self.hidden_state_diff[i - 1],
-                        #         self.cell_state_diff[i - 1])).render('mimn', format='png')
-
                         # 먼저 MIM_N 계산
-                        self.hidden_state_diff[i - 1], self.cell_state_diff[i - 1] = self.st_lstm_layer_diff[i - 1](
-                            self.hidden_state[i - 1] - preh, self.hidden_state_diff[i - 1], self.cell_state_diff[i - 1])
+                        hidden_state_diff[i - 1], cell_state_diff[i - 1] = self.st_lstm_layer_diff[i - 1](
+                            hidden_state[i - 1] - preh, hidden_state_diff[i - 1], cell_state_diff[i - 1],
+                            MIMN_ct_w, MIMN_oc_w)
                     else:
-                        self.hidden_state_diff[i - 1], self.cell_state_diff[i - 1] = self.st_lstm_layer_diff[i - 1](
-                            # 먼저 MIM_N 계산
-                            self.hidden_state_diff[i - 2], self.hidden_state_diff[i - 1], self.cell_state_diff[i - 1])
+                        hidden_state_diff[i - 1], cell_state_diff[i - 1] = self.st_lstm_layer_diff[i - 1](
+                            hidden_state_diff[i - 2], hidden_state_diff[i - 1], cell_state_diff[i - 1],
+                            MIMN_ct_w, MIMN_oc_w)
                 else:
-                    self.st_lstm_layer_diff[i - 1](torch.zeros_like(self.hidden_state[i - 1]), None, None)
+                    self.st_lstm_layer_diff[i - 1](torch.zeros_like(hidden_state[i - 1]),
+                                                   hidden_state_diff[i - 1],
+                                                   cell_state_diff[i - 1],
+                                                   MIMN_ct_w, MIMN_oc_w)
 
                 # MIM_block	계산 마지막hidden_layer state
-                preh = self.hidden_state[i]
-
-                # make_dot(self.st_lstm_layer[i](  # MIM_block
-                #     self.hidden_state[i - 1], self.hidden_state_diff[i - 1], self.hidden_state[i], self.cell_state[i],
-                #     self.st_memory)).render('mim block', format='png')
-
-                self.hidden_state[i], self.cell_state[i], self.st_memory = self.st_lstm_layer[i](  # MIM_block
-                    self.hidden_state[i - 1], self.hidden_state_diff[i - 1], self.hidden_state[i], self.cell_state[i],
-                    self.st_memory)
+                preh = hidden_state[i]
+                hidden_state[i], cell_state[i], st_memory = self.st_lstm_layer[i](  # MIM_block
+                    hidden_state[i - 1], hidden_state_diff[i - 1], hidden_state[i], cell_state[i], st_memory,
+                    conv_lstm_c, MIMB_ct_w, MIMB_oc_w)
 
             # 이미지 생성
-            x_gen = self.x_gen(self.hidden_state[self.num_layers - 1])
+            x_gen = self.x_gen(hidden_state[self.num_layers - 1])
+            gen_images.append(x_gen)
 
-            self.gen_images.append(x_gen)
+        gen_images = torch.stack(gen_images, dim=1)
 
-        self.gen_images = torch.stack(self.gen_images, dim=1)
-        img = torch.tensor(images[:, 1:])
-        loss = self.loss_fn(self.gen_images, img)
-
-        return self.gen_images, loss
+        return gen_images

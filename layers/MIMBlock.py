@@ -34,13 +34,13 @@ class MIMBlock(nn.Module):
         self.mim_s_h_t = nn.Conv2d(self.num_hidden, self.num_hidden * 4, self.filter_size, 1, padding=2)
 
         # c_t
-        self.ct_weight = nn.Parameter(torch.randn((self.num_hidden * 2, self.height, self.width)))
+        # self.ct_weight = nn.Parameter(torch.randn((self.num_hidden * 2, self.height, self.width)))
 
         # x
         self.mim_s_x = nn.Conv2d(self.num_hidden, self.num_hidden * 4, self.filter_size, 1, padding=2)
 
         # oc
-        self.oc_weight = nn.Parameter(torch.randn((self.num_hidden, self.height, self.width)))
+        # self.oc_weight = nn.Parameter(torch.randn((self.num_hidden, self.height, self.width)))
 
         # bn
         self.bn_h_concat = nn.BatchNorm2d(self.num_hidden * 4)
@@ -64,17 +64,17 @@ class MIMBlock(nn.Module):
         self.bn_s_cc = nn.BatchNorm2d(self.num_hidden * 4)
         self.bn_x_cc = nn.BatchNorm2d(self.num_hidden * 4)
 
-    def init_state(self):  # 초기화lstm hidden layer 상태
-        return torch.zeros((self.batch, self.num_hidden, self.height, self.width),
-                           dtype=torch.float32, device=self.device, requires_grad=True)
+    # def init_state(self):  # 초기화lstm hidden layer 상태
+    #     return torch.zeros((self.batch, self.num_hidden, self.height, self.width),
+    #                        dtype=torch.float32, device=self.device, requires_grad=True)
 
 # 내일 weight 빼고 다 del로 넣어버리기
-    def MIMS(self, x, h_t, c_t):  # MIMS
+    def MIMS(self, x, h_t, c_t, ct_weight, oc_weight):  # MIMS
         # h_t c_t[batch, in_height, in_width, num_hidden]
-        if h_t is None:
-            h_t = self.init_state()
-        if c_t is None:
-            c_t = self.init_state()
+        # if h_t is None:
+        #     h_t = self.init_state()
+        # if c_t is None:
+        #     c_t = self.init_state()
 
         # h_t
         h_concat = self.mim_s_h_t(h_t)
@@ -86,7 +86,7 @@ class MIMBlock(nn.Module):
         i_h, g_h, f_h, o_h = torch.split(h_concat, self.num_hidden, 1)
 
         # ct_weight
-        ct_activation = torch.mul(c_t.repeat([1, 2, 1, 1]), self.ct_weight)
+        ct_activation = torch.mul(c_t.repeat([1, 2, 1, 1]), ct_weight)
         i_c, f_c = torch.split(ct_activation, self.num_hidden, 1)
 
         i_ = i_h + i_c
@@ -112,21 +112,21 @@ class MIMBlock(nn.Module):
         c_new = f_ * c_t + i_ * torch.tanh(g_)
 
         # oc_weight
-        o_c = torch.mul(c_new, self.oc_weight)
+        o_c = torch.mul(c_new, oc_weight)
 
         h_new = torch.sigmoid(o_ + o_c) * torch.tanh(c_new)
 
         return h_new, c_new
 
-    def forward(self, x, diff_h, h, c, m):
-        if h is None:
-            h = self.init_state()
-        if c is None:
-            c = self.init_state()
-        if m is None:
-            m = self.init_state()
-        if diff_h is None:
-            diff_h = torch.zeros_like(h)
+    def forward(self, x, diff_h, h, c, m, conv_lstm_c, MIMB_ct_w, MIMB_oc_w):
+        # if h is None:
+        #     h = self.init_state()
+        # if c is None:
+        #     c = self.init_state()
+        # if m is None:
+        #     m = self.init_state()
+        # if diff_h is None:
+        #     diff_h = torch.zeros_like(h)
 
         # h
         t_cc = self.t_cc(h)
@@ -155,7 +155,7 @@ class MIMBlock(nn.Module):
         new_m = f_ * m + i_ * g_
 
         # MIMS
-        c, self.conv_lstm_c = self.MIMS(diff_h, c, self.conv_lstm_c)
+        c, conv_lstm_c = self.MIMS(diff_h, c, conv_lstm_c, MIMB_ct_w, MIMB_oc_w)
 
         new_c = c + i * g
         cell = torch.cat((new_c, new_m), 1)

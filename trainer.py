@@ -6,11 +6,17 @@ from skimage.measure import compare_ssim
 from utils import metrics
 from utils import preprocess
 import torch
+import torch.nn.functional as F
 import torch.nn as nn
 
+import gc
 
-def trainer(model, ims, real_input_flag, configs, itr, ims_reverse=None, device=None):
+from torchsummary import summary
+
+
+def trainer(model, ims, real_input_flag, configs, itr, ims_reverse=None, device=None, optimizer=None, loss=None):
     ims = ims[:, :configs.total_length]
+    gt_ims = ims[:, 1:]
     # ims_tmp = np.transpose(ims, (0, 1, 4, 2, 3))
     # ims_list = np.split(ims, configs.n_gpu)
     # ims_list = np.split(ims_tmp, configs.n_gpu)
@@ -18,43 +24,66 @@ def trainer(model, ims, real_input_flag, configs, itr, ims_reverse=None, device=
     # ims=np.array(ims)  #to np.array
     # cost = model.forward(ims_list[0], real_input_flag)
     ims_tensor = torch.tensor(ims, device=device)
-    cost = model.forward(ims_tensor, real_input_flag)
+    gt_ims_tensor = torch.tensor(gt_ims, device=device)
 
+    gen_images = model.forward(ims_tensor, real_input_flag, optimizer)
+
+    loss_value = F.MSELoss(gen_images, gt_ims_tensor)
+    optimizer.zero_grad()
+    loss_value.backward()
+    optimizer.step()
+
+    loss_print = loss_value.data
     flag = 1
 
     if configs.reverse_img:
         ims_rev = np.split(ims_reverse, configs.n_gpu)
-        cost += model.forward(ims_rev, configs.lr, real_input_flag)
+        gen_images = model.forward(ims_rev, configs.lr, real_input_flag)
+
+        loss_value = loss(gen_images, gt_ims_tensor)
+        optimizer.zero_grad()
+        loss_value.backward()
+        optimizer.step()
+
+        loss_print += loss_value.data
         flag += 1
 
     if configs.reverse_input:
         ims_rev = np.split(ims[:, ::-1], configs.n_gpu)
-        cost += model.forward(ims_rev, configs.lr, real_input_flag)
+        gen_images = model.forward(ims_rev, configs.lr, real_input_flag)
+
+        loss_value = loss(gen_images, gt_ims_tensor)
+        optimizer.zero_grad()
+        loss_value.backward(retain_graph=True)
+        optimizer.step()
+
+        loss_print += loss_value.data
         flag += 1
+
         if configs.reverse_img:
             ims_rev = np.split(ims_reverse[:, ::-1], configs.n_gpu)
-            cost += model.forward(ims_rev, configs.lr, real_input_flag)
+            gen_images = model.forward(ims_rev, configs.lr, real_input_flag)
+
+            loss_value = loss(gen_images, gt_ims_tensor)
+            optimizer.zero_grad()
+            loss_value.backward(retain_graph=True)
+            optimizer.step()
+
+            loss_print += loss_value.data
             flag += 1
 
-    gen_image, tensor_loss = cost
+    # _, tensor_loss = cost
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    # make_dot(tensor_loss).render('graph', format="png")
 
-    optimizer.zero_grad()
-    tensor_loss.backward(retain_graph=True)
-    optimizer.step()
+    # for obj in gc.get_objects():
+    #     try:
+    #         if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
+    #             print(type(obj), obj.size())
+    #     except:
+    #         pass
 
-    loss = tensor_loss.item() / flag
-    if itr % configs.display_interval == 0:
-        print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'itr: ' + str(itr))
-        print('training loss: ' + str(loss))
-
-    del tensor_loss
-    del gen_image
-    del cost
-    del ims_tensor
-
-    return loss
+    return loss_print / flag
 
 
 def test(model, test_input_handle, configs, save_name):

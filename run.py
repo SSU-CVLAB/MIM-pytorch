@@ -2,6 +2,7 @@ import argparse
 from time import time
 import numpy as np
 import torch
+import datetime
 import os
 
 # 로컬 라이브러리
@@ -12,6 +13,7 @@ from layers.MIMN import MIMN as MIMN
 from data_provider import datasets_factory
 from utils import preprocess
 from models.mim import MIM
+# from models.mim2 import MIM
 
 import trainer
 
@@ -32,6 +34,7 @@ def parse_args():
     parser.add_argument('--input_length', default=5, type=int, help='encoder hidden states.')
     parser.add_argument('--total_length', default=10, type=int, help='total input and output length.')
     parser.add_argument('--img_width', default=64, type=int, help='input image width.')
+    parser.add_argument('--img_height', default=64, type=int, help='input image height.')
     parser.add_argument('--img_channel', default=1, type=int, help='number of image channel.')
     # model[convlstm, predcnn, predrnn, predrnn_pp]
     parser.add_argument('--model_name', default='convlstm_net', type=str, help='The name of the architecture.')
@@ -63,7 +66,6 @@ def parse_args():
     # gpu
     parser.add_argument('--n_gpu', default=1, type=int, help='how many GPUs to distribute the training across.')
     parser.add_argument('--allow_gpu_growth', default=False, type=bool, help='allow gpu growth')
-    parser.add_argument('--img_height', default=64, type=int, help='input image height.')
     parser.add_argument('--device', default='cuda', type=str, help='Training device')
 
     args = parser.parse_args()
@@ -138,34 +140,42 @@ def main():
                                                                            seq_length=args.total_length,
                                                                            is_training=True)  # n 64 64 1 로 나옴
 
-    with torch.set_grad_enabled(True):
-        if args.pretrained_model:
-            model.load(args.pretrained_model)
+    # with torch.set_grad_enabled(True):
+    if args.pretrained_model:
+        model.load(args.pretrained_model)
 
-        eta = args.sampling_start_value  # 1.0
+    eta = args.sampling_start_value  # 1.0
 
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+    MSELoss = torch.nn.MSELoss()
 
-        for itr in range(1, args.max_iterations + 1):
-            if train_input_handle.no_batch_left():
-                train_input_handle.begin(do_shuffle=True)
+    for itr in range(1, args.max_iterations + 1):
+        if train_input_handle.no_batch_left():
+            train_input_handle.begin(do_shuffle=True)
 
-            ims = train_input_handle.get_batch()
-            ims_reverse = None
-            if args.reverse_img:
-                ims_reverse = ims[:, :, :, ::-1]
-                ims_reverse = preprocess.reshape_patch(ims_reverse, args.patch_size)
-            ims = preprocess.reshape_patch(ims, args.patch_size)
-            eta, real_input_flag = schedule_sampling(eta, itr, args)
+        ims = train_input_handle.get_batch()
+        ims_reverse = None
+        if args.reverse_img:
+            ims_reverse = ims[:, :, :, ::-1]
+            ims_reverse = preprocess.reshape_patch(ims_reverse, args.patch_size)
+        ims = preprocess.reshape_patch(ims, args.patch_size)
+        eta, real_input_flag = schedule_sampling(eta, itr, args)
 
-            loss = trainer.trainer(model, ims, real_input_flag, args, itr, ims_reverse, device)
+        loss = trainer.trainer(model, ims, real_input_flag, args, itr, ims_reverse, device, optimizer, MSELoss)
 
-            if itr % args.snapshot_interval == 0:
-                model.save(itr)
+        if itr % args.snapshot_interval == 0:
+            model.save(itr)
 
-            if itr % args.test_interval == 0:
-                trainer.test(model, test_input_handle, args, itr)
+        if itr % args.test_interval == 0:
+            trainer.test(model, test_input_handle, args, itr)
 
-            train_input_handle.next()
+        if itr % args.display_interval == 0:
+            print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'itr: ' + str(itr))
+            print('training loss: ' + str(loss))
+
+        train_input_handle.next()
+
+        del loss
 
 
 if __name__ == "__main__":
