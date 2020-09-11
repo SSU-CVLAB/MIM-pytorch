@@ -2,9 +2,12 @@ import argparse
 from time import time
 import numpy as np
 import torch
-from torch import nn
 import torch.nn.functional as F
 import datetime
+
+from torch import nn
+from torchvision import transforms
+import cv2
 import os
 
 from data_provider import datasets_factory
@@ -198,7 +201,22 @@ def main():
                                    MIMB_oc_weight, MIMB_ct_weight, MIMN_oc_weight, MIMN_ct_weight)
         gt_ims = torch.tensor(ims2[:, 1:], device=device)
 
-        optimizer.zero_grad()
+        # tmp = gt_ims[0, 1].clone().to('cpu').numpy() * 255
+        # tmp = np.transpose(tmp, (1, 2, 0))
+        # print("tmp shape : {}".format(tmp.shape))
+        # cv2.imshow("gt", tmp)
+        #
+        # tmp2 = gen_images[0, 1].clone().detach().to('cpu').numpy() * 255
+        # tmp2 = np.transpose(tmp2, (1, 2, 0))
+        # print("tmp2 shape : {}".format(tmp2.shape))
+        # cv2.imshow("gen image", tmp2)
+        #
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
+        #
+        # optimizer.zero_grad()
+        # diffrence = gen_images[0, 0] - gt_ims[0, 0]
+        # loss2 = F.mse_loss(gen_images[0, 0], gt_ims[0, 0])
         loss = F.mse_loss(gen_images, gt_ims)
         loss.backward()
         optimizer.step()
@@ -208,6 +226,7 @@ def main():
         # loss = trainer.trainer(model, ims, real_input_flag, args, itr, ims_reverse, device, optimizer, MSELoss)
 
         if itr % args.snapshot_interval == 0:
+            # 모델 세이브 할때 detachVariable에 들어가는 애들 다 바꿔줘야 함
             model.save(itr)
 
         if itr % args.test_interval == 0:
