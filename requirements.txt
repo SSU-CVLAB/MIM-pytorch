@@ -1,0 +1,6 @@
+numpy
+torch
+torchviz
+torchsummary
+opencv-python
+skimage
