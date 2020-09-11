@@ -100,7 +100,7 @@ class MIM(nn.Module):  # ST-LSTM
     def forward(self, images, schedual_sampling_bool):
         self.gen_images = []
         for time_step in range(self.total_length - 1):  # 시간이 길다
-            print('time_step: ' + str(time_step))
+            # print('time_step: ' + str(time_step))
 
             if time_step < self.input_length:  #
                 x_gen = images[:, time_step]  # [batch, in_channel,in_height, in_width]
@@ -118,7 +118,7 @@ class MIM(nn.Module):  # ST-LSTM
 
             # MIM_block
             for i in range(1, self.num_layers):
-                print('i: ' + str(i))
+                # print('i: ' + str(i))
                 if time_step > 0:
                     if i == 1:
                         # make_dot(self.st_lstm_layer_diff[i - 1](

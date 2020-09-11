@@ -234,7 +234,7 @@ def main():
 
         if itr % args.display_interval == 0:
             print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'itr: ' + str(itr))
-            print('training loss: ' + str(loss1))
+            print('training loss: ' + str(loss1.item()))
 
         del gen_images
         detachVariables(hidden_state, cell_state, hidden_state_diff, cell_state_diff, st_memory, conv_lstm_c,

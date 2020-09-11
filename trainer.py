@@ -126,7 +126,9 @@ def test(model, test_input_handle, configs, save_name):
             test_dat = test_ims
         test_dat = np.split(test_dat, configs.n_gpu)
         # 여기서 debug 바꿔줘야 함 현재 im_gen만 나오게 바껴져 있음 원래는 뭐였는지 살펴보기
-        img_gen, debug = model(test_dat, real_input_flag)
+        with torch.no_grad:
+            img_gen, debug = model.test(test_dat, real_input_flag)
+            img_gen
 
         # concat outputs of different gpus along batch
         img_gen = np.concatenate(img_gen)
