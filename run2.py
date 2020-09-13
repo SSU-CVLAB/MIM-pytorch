@@ -151,6 +151,22 @@ def saveVariables(args, hidden_state, cell_state, hidden_state_diff, cell_state_
     torch.save(MIMN_ct_weight, args.save_variables_dir + "MIMN_ct_weight.pt")
     torch.save(MIMN_oc_weight, args.save_variables_dir + "MIMN_oc_weight.pt")
 
+
+def loadVariables(args):
+    hidden_state = torch.load(args.save_variables_dir + 'hidden_state.pt', map_location=torch.device(args.device))
+    cell_state = torch.load(args.save_variables_dir + 'cell_state.pt', map_location=torch.device(args.device))
+    hidden_state_diff = torch.load(args.save_variables_dir + 'hidden_state_diff.pt', map_location=torch.device(args.device))
+    cell_state_diff = torch.load(args.save_variables_dir + 'cell_state_diff.pt', map_location=torch.device(args.device))
+    st_memory = torch.load(args.save_variables_dir + 'st_memory.pt', map_location=torch.device(args.device))
+    conv_lstm_c = torch.load(args.save_variables_dir + 'conv_lstm_c.pt', map_location=torch.device(args.device))
+    MIMB_ct_weight = torch.load(args.save_variables_dir + 'MIMB_ct_weight.pt', map_location=torch.device(args.device))
+    MIMB_oc_weight = torch.load(args.save_variables_dir + 'MIMB_oc_weight.pt', map_location=torch.device(args.device))
+    MIMN_ct_weight = torch.load(args.save_variables_dir + 'MIMN_ct_weight.pt', map_location=torch.device(args.device))
+    MIMN_oc_weight = torch.load(args.save_variables_dir + 'MIMN_oc_weight.pt', map_location=torch.device(args.device))
+
+    return hidden_state, cell_state, hidden_state_diff, cell_state_diff, st_memory, conv_lstm_c, MIMB_ct_weight, \
+           MIMB_oc_weight, MIMN_ct_weight, MIMN_oc_weight
+
 def main():
     # 파라미터 로드
     args = parse_args()
@@ -161,6 +177,18 @@ def main():
     else:
         device = torch.device("cpu")
 
+    model = MIM(args).to(device)
+    print(model)
+    print('The model is loaded!\n')
+
+    # 데이터셋 로드
+    train_input_handle, test_input_handle = datasets_factory.data_provider(args.dataset_name,
+                                                                           args.train_data_paths,
+                                                                           args.valid_data_paths,
+                                                                           args.batch_size * args.n_gpu,
+                                                                           args.img_width,
+                                                                           seq_length=args.total_length,
+                                                                           is_training=True)  # n 64 64 1 로 나옴
     gen_images = None
 
     cell_state = [init_state(args) for i in range(4)]
@@ -175,27 +203,15 @@ def main():
     MIMN_ct_weight = nn.Parameter(torch.randn((args.num_hidden[0] * 2, args.img_height, args.img_width), device=device))
     MIMN_oc_weight = nn.Parameter(torch.randn((args.num_hidden[0], args.img_height, args.img_width), device=device))
 
-    model = MIM(args).to(device)
-    print(model)
-    print('The model is loaded!\n')
-
-    # 데이터셋 로드
-    train_input_handle, test_input_handle = datasets_factory.data_provider(args.dataset_name,
-                                                                           args.train_data_paths,
-                                                                           args.valid_data_paths,
-                                                                           args.batch_size * args.n_gpu,
-                                                                           args.img_width,
-                                                                           seq_length=args.total_length,
-                                                                           is_training=True)  # n 64 64 1 로 나옴
-
-    # with torch.set_grad_enabled(True):
     if args.pretrained_model:
+        hidden_state, cell_state, hidden_state_diff, cell_state_diff, st_memory, conv_lstm_c, MIMB_ct_weight, \
+        MIMB_oc_weight, MIMN_ct_weight, MIMN_oc_weight = loadVariables(args)
         model.load(args.pretrained_model)
 
     eta = args.sampling_start_value  # 1.0
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.00001)
-    MSELoss = torch.nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    # MSELoss = torch.nn.MSELoss()
 
     for itr in range(1, args.max_iterations + 1):
         if train_input_handle.no_batch_left():
@@ -235,9 +251,6 @@ def main():
         loss = F.mse_loss(gen_images, gt_ims)
         loss.backward()
         optimizer.step()
-
-        saveVariables(args, hidden_state, cell_state, hidden_state_diff, cell_state_diff, st_memory, conv_lstm_c,
-                      MIMB_ct_weight, MIMB_oc_weight, MIMN_ct_weight, MIMN_oc_weight)
 
         loss1 = loss.detach_()
 
