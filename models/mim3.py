@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import os
 
 from layers.SpatioTemporalLSTMCellv2 import SpatioTemporalLSTMCell as ST_LSTM
 from layers.MIMBlock import MIMBlock as MIM_block
@@ -85,8 +86,8 @@ class MIM(nn.Module):  # ST-LSTM
         print("save model to %s" % checkpoint_path)
 
     def load(self, args):
-        print('load model:', agrs.pretrained_model)
-        stats = torch.load(checkpoint_path)
+        print('load model:', args.pretrained_model)
+        stats = torch.load(args.checkpoint_path)
         self.network.load_state_dict(stats['net_param'])
 
     # def train(self,args)
