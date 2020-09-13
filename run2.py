@@ -29,6 +29,7 @@ def parse_args():
                         help='validation data paths.')
     parser.add_argument('--save_dir', default='checkpoints/mnist_MIM_pp', type=str,
                         help='dir to store trained net.')
+    parser.add_argument('--save_variables_dir', default='variables/', type=str, help='dir to save variables')
     parser.add_argument('--gen_frm_dir', default='results/mnist_predrnn_pp', type=str, help='dir to store result.')
     parser.add_argument('--input_length', default=5, type=int, help='encoder hidden states.')
     parser.add_argument('--total_length', default=10, type=int, help='total input and output length.')
@@ -136,6 +137,20 @@ def detachVariables(hidden, cell, hidden_diff, cell_diff, st, convc, bct, boc, n
     nct = nct.detach_()
     noc = noc.detach_()
 
+
+def saveVariables(args, hidden_state, cell_state, hidden_state_diff, cell_state_diff, st_memory, conv_lstm_c, MIMB_ct_weight,
+                  MIMB_oc_weight, MIMN_ct_weight, MIMN_oc_weight):
+    torch.save(hidden_state, args.save_variables_dir + "hidden_state.pt")
+    torch.save(cell_state, args.save_variables_dir + "cell_state.pt")
+    torch.save(hidden_state_diff, args.save_variables_dir + "hidden_state_diff.pt")
+    torch.save(cell_state_diff, args.save_variables_dir + "cell_state_diff.pt")
+    torch.save(st_memory, args.save_variables_dir + "st_memory.pt")
+    torch.save(conv_lstm_c, args.save_variables_dir + "conv_lstm_c.pt")
+    torch.save(MIMB_ct_weight, args.save_variables_dir + "MIMB_ct_weight.pt")
+    torch.save(MIMB_oc_weight, args.save_variables_dir + "MIMB_oc_weight.pt")
+    torch.save(MIMN_ct_weight, args.save_variables_dir + "MIMN_ct_weight.pt")
+    torch.save(MIMN_oc_weight, args.save_variables_dir + "MIMN_oc_weight.pt")
+
 def main():
     # 파라미터 로드
     args = parse_args()
@@ -221,12 +236,17 @@ def main():
         loss.backward()
         optimizer.step()
 
+        saveVariables(args, hidden_state, cell_state, hidden_state_diff, cell_state_diff, st_memory, conv_lstm_c,
+                      MIMB_ct_weight, MIMB_oc_weight, MIMN_ct_weight, MIMN_oc_weight)
+
         loss1 = loss.detach_()
 
         # loss = trainer.trainer(model, ims, real_input_flag, args, itr, ims_reverse, device, optimizer, MSELoss)
 
         if itr % args.snapshot_interval == 0:
             # 모델 세이브 할때 detachVariable에 들어가는 애들 다 바꿔줘야 함
+            saveVariables(args, hidden_state, cell_state, hidden_state_diff, cell_state_diff, st_memory, conv_lstm_c,
+                        MIMB_ct_weight, MIMB_oc_weight, MIMN_ct_weight, MIMN_oc_weight)
             model.save(itr)
 
         if itr % args.test_interval == 0:
