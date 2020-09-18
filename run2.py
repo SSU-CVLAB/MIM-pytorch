@@ -1,20 +1,15 @@
 import argparse
-from time import time
 import numpy as np
 import torch
 import torch.nn.functional as F
 import datetime
+import trainer
 
 from torch import nn
-from torchvision import transforms
-import cv2
-import os
-
 from data_provider import datasets_factory
 from utils import preprocess
+from utils import DOFLoss
 from models.mim3 import MIM
-
-import trainer
 
 
 def parse_args():
@@ -248,7 +243,11 @@ def main():
         # optimizer.zero_grad()
         # diffrence = gen_images[0, 0] - gt_ims[0, 0]
         # loss2 = F.mse_loss(gen_images[0, 0], gt_ims[0, 0])
-        loss = F.mse_loss(gen_images, gt_ims)
+
+        MSE_loss = F.mse_loss(gen_images, gt_ims)
+        DOF_loss = DOFLoss.dense_optical_flow_loss(gen_images, gt_ims, args.img_channel)
+        # 얘 MSE로 하던가 Norm2 마할라노비스 등등으로 loss 구한다음에 MSE_loss 랑 더해주고 역전파 시키기
+        loss = MSE_loss + DOF_loss
         loss.backward()
         optimizer.step()
 

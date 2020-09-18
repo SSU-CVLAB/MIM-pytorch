@@ -90,7 +90,6 @@ class MIM(nn.Module):  # ST-LSTM
         stats = torch.load(args.checkpoint_path)
         self.network.load_state_dict(stats['net_param'])
 
-    # def train(self,args)
     def forward(self, images, schedual_sampling_bool, hidden_state, cell_state, hidden_state_diff, cell_state_diff,
                 st_memory, conv_lstm_c, MIMB_oc_w, MIMB_ct_w, MIMN_oc_w, MIMN_ct_w):
         gen_images = []
