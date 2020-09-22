@@ -209,6 +209,8 @@ def main():
     # MSELoss = torch.nn.MSELoss()
 
     for itr in range(1, args.max_iterations + 1):
+        optimizer.zero_grad()
+
         if train_input_handle.no_batch_left():
             train_input_handle.begin(do_shuffle=True)
 
@@ -244,14 +246,15 @@ def main():
         # diffrence = gen_images[0, 0] - gt_ims[0, 0]
         # loss2 = F.mse_loss(gen_images[0, 0], gt_ims[0, 0])
 
-        MSE_loss = F.mse_loss(gen_images, gt_ims)
         gen_diff, gt_diff = DOFLoss.dense_optical_flow_loss(gen_images, gt_ims, args.img_channel)
         gen_diff_tensor = torch.tensor(gen_diff, device=args.device)
         gt_diff_tensor = torch.tensor(gt_diff, device=args.device)
-        DOF_loss = F.mse_loss(gen_diff_tensor, gt_diff_tensor)
+        DOF_Mloss = F.mse_loss(gen_diff_tensor[0], gt_diff_tensor[0])
+        DOF_Dloss = F.mse_loss(gen_diff_tensor[1], gt_diff_tensor[1])
+        MSE_loss = F.mse_loss(gen_images, gt_ims)
 
         # 얘 MSE로 하던가 Norm2 마할라노비스 등등으로 loss 구한다음에 MSE_loss 랑 더해주고 역전파 시키기
-        loss = MSE_loss + DOF_loss
+        loss = 0.3 * MSE_loss + 0.35 * 0.5 * DOF_Mloss + 0.35 * 0.5 * DOF_Dloss
         loss.backward()
         optimizer.step()
 
@@ -266,7 +269,8 @@ def main():
             model.save(itr)
 
         if itr % args.test_interval == 0:
-            trainer.test(model, test_input_handle, args, itr)
+            trainer.test(model, test_input_handle, args, itr, hidden_state, cell_state, hidden_state_diff, cell_state_diff,
+                st_memory, conv_lstm_c, MIMB_oc_weight, MIMB_ct_weight, MIMN_oc_weight, MIMN_ct_weight)
 
         if itr % args.display_interval == 0:
             print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'itr: ' + str(itr))

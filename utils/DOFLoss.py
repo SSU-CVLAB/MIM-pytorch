@@ -20,7 +20,7 @@ def gpu_to_cpu(images):
         seq_images = []
 
         for img in seq:
-            seq_images.append(np.transpose(img.clone().detach().to('cpu').numpy(), (1, 2, 0)))
+            seq_images.append(img.clone().detach().to('cpu').numpy().reshape((img.shape[1], img.shape[2])))
 
         cpu_images.append(seq_images.copy())
 
@@ -43,7 +43,6 @@ def dense_optical_flow_loss(gen_images, gt_images, img_channel):
     gen_images_cpu = gpu_to_cpu(gen_images)
     gt_images_cpu = gpu_to_cpu(gt_images)
 
-
     if img_channel == 3:
         gen_images_cpu = to_grayscale(gen_images_cpu)
         gt_images_cpu = to_grayscale(gt_images_cpu)
@@ -56,11 +55,15 @@ def dense_optical_flow_loss(gen_images, gt_images, img_channel):
             # gen_img1, gen_img2 = gen_images[i].clone().detach().numpy(), gen_images[i + 1].clone().detach().numpy()
             # gt_img1, gt_img2 = gt_images[i].clone().detach().numpy(), gt_images[i + 1].clone().detach().numpy()
 
-            tmp1 = float_to_cv8u(gen_seq[i])
-            tmp2 = float_to_cv8u(gen_seq[i + 1])
+            # tmp1 = float_to_cv8u(gen_seq[i])
+            # tmp2 = float_to_cv8u(gen_seq[i + 1])
 
             gen_flow = optical.calc(float_to_cv8u(gen_seq[i]), float_to_cv8u(gen_seq[i + 1]), None)
             gt_flow = optical.calc(float_to_cv8u(gt_seq[i]), float_to_cv8u(gt_seq[i + 1]), None)
+
+            # 채널이 두개 나오는데 광도 및 방향으로 나옴, 그 다음으로 이미지 사이즈 나옴
+            gen_flow = np.transpose(gen_flow, (2, 0, 1))
+            gt_flow = np.transpose(gt_flow, (2, 0, 1))
 
             # gen_flow = optical.calc(gen_img1, gen_img2, None)
             # gt_flow = optical.calc(gt_img1, gt_img2, None)

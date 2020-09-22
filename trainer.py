@@ -88,7 +88,6 @@ def trainer(model, ims, real_input_flag, configs, itr, ims_reverse=None, device=
 
 def test(model, test_input_handle, configs, save_name, hidden_state, cell_state, hidden_state_diff, cell_state_diff,
                 st_memory, conv_lstm_c, MIMB_oc_w, MIMB_ct_w, MIMN_oc_w, MIMN_ct_w):
-    print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'test...')
     test_input_handle.begin(do_shuffle=False)
     res_path = os.path.join(configs.gen_frm_dir, str(save_name))
     if not os.path.isdir(res_path):
@@ -132,7 +131,7 @@ def test(model, test_input_handle, configs, save_name, hidden_state, cell_state,
 
             test_dat = np.split(test_dat, configs.n_gpu)
             # 여기서 debug 바꿔줘야 함 현재 im_gen만 나오게 바껴져 있음 원래는 뭐였는지 살펴보기
-            img_gen = model.test(test_dat, real_input_flag, hidden_state, cell_state, hidden_state_diff, cell_state_diff,
+            img_gen = model.forward(test_dat, real_input_flag, hidden_state, cell_state, hidden_state_diff, cell_state_diff,
                 st_memory, conv_lstm_c, MIMB_oc_w, MIMB_ct_w, MIMN_oc_w, MIMN_ct_w)
 
             # concat outputs of different gpus along batch
@@ -191,26 +190,45 @@ def test(model, test_input_handle, configs, save_name, hidden_state, cell_state,
                     cv2.imwrite(file_name, img_pd)
             test_input_handle.next()
 
+    writer = [open('loss/mse.txt', 'a'),
+              open('loss/psnr.txt', 'a'),
+              open('loss/ssim.txt', 'a'),
+              open('loss/fmae.txt', 'a'),
+              open('loss/sharpness.txt', 'a')]
+
+    print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'test...' + str(save_name))
+    for write in writer:
+        write.write(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'test...')
+
     avg_mse = avg_mse / (batch_id * configs.batch_size * configs.n_gpu)
     print('mse per seq: ' + str(avg_mse))
 
-    for i in range(configs.total_length - configs.input_length):
-        print(img_mse[i] / (batch_id * configs.batch_size * configs.n_gpu))
+    # for i in range(configs.total_length - configs.input_length):
+    #     print(img_mse[i] / (batch_id * configs.batch_size * configs.n_gpu))
 
     psnr = np.asarray(psnr, dtype=np.float32) / batch_id
-    fmae = np.asarray(fmae, dtype=np.float32) / batch_id
     ssim = np.asarray(ssim, dtype=np.float32) / (configs.batch_size * batch_id)
+    fmae = np.asarray(fmae, dtype=np.float32) / batch_id
     sharp = np.asarray(sharp, dtype=np.float32) / (configs.batch_size * batch_id)
 
     print('psnr per frame: ' + str(np.mean(psnr)))
-    for i in range(configs.total_length - configs.input_length):
-        print(psnr[i])
-    print('fmae per frame: ' + str(np.mean(fmae)))
-    for i in range(configs.total_length - configs.input_length):
-        print(fmae[i])
     print('ssim per frame: ' + str(np.mean(ssim)))
-    for i in range(configs.total_length - configs.input_length):
-        print(ssim[i])
+    print('fmae per frame: ' + str(np.mean(fmae)))
     print('sharpness per frame: ' + str(np.mean(sharp)))
-    for i in range(configs.total_length - configs.input_length):
-        print(sharp[i])
+
+    writer[1].write('psnr per frame: ' + str(np.mean(psnr)))
+    writer[2].write('ssim per frame: ' + str(np.mean(ssim)))
+    writer[3].write('fmae per frame: ' + str(np.mean(fmae)))
+    writer[4].write('sharpness per frame: ' + str(np.mean(sharp)))
+
+    # for i in range(configs.total_length - configs.input_length):
+    #     print(psnr[i])
+    # print('fmae per frame: ' + str(np.mean(fmae)))
+    # for i in range(configs.total_length - configs.input_length):
+    #     print(fmae[i])
+    # print('ssim per frame: ' + str(np.mean(ssim)))
+    # for i in range(configs.total_length - configs.input_length):
+    #     print(ssim[i])
+    # print('sharpness per frame: ' + str(np.mean(sharp)))
+    # for i in range(configs.total_length - configs.input_length):
+    #     print(sharp[i])
