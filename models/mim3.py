@@ -25,6 +25,7 @@ class MIM(nn.Module):  # ST-LSTM
         self.device = args.device
         self.batch = args.batch_size
         self._forget_bias = 1.0
+        self.save_dir = args.save_dir
 
         # 모델 파라미터 초기화
         self.st_lstm_layer = nn.ModuleList()
@@ -80,8 +81,8 @@ class MIM(nn.Module):  # ST-LSTM
 
     def save(self, itr):
         stats = {}
-        stats['net_param'] = self.network.state_dict()
-        checkpoint_path = os.path.join(self.configs.save_dir, 'model.ckpt' + '-' + str(itr))
+        stats['net_param'] = self.state_dict()
+        checkpoint_path = os.path.join(self.save_dir, 'model.ckpt' + '-' + str(itr))
         torch.save(stats, checkpoint_path)
         print("save model to %s" % checkpoint_path)
 

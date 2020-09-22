@@ -22,10 +22,10 @@ def parse_args():
                         help="train data paths")
     parser.add_argument('--valid_data_paths', default='data/moving-mnist-example/moving-mnist-valid.npz', type=str,
                         help='validation data paths.')
-    parser.add_argument('--save_dir', default='checkpoints/mnist_MIM_pp', type=str,
+    parser.add_argument('--save_dir', default='checkpoints/mnist_mim', type=str,
                         help='dir to store trained net.')
     parser.add_argument('--save_variables_dir', default='variables/', type=str, help='dir to save variables')
-    parser.add_argument('--gen_frm_dir', default='results/mnist_predrnn_pp', type=str, help='dir to store result.')
+    parser.add_argument('--gen_frm_dir', default='results/mnist_mim', type=str, help='dir to store result.')
     parser.add_argument('--input_length', default=10, type=int, help='encoder hidden states.')
     parser.add_argument('--total_length', default=20, type=int, help='total input and output length.')
     parser.add_argument('--img_width', default=64, type=int, help='input image width.')
@@ -52,11 +52,11 @@ def parse_args():
                         help='whether to reverse the input frames while training.')
     parser.add_argument('--reverse_img', default=False, type=bool,
                         help='whether to reverse the input images while training.')
-    parser.add_argument('--batch_size', default=10, type=int, help='batch size for training.')
+    parser.add_argument('--batch_size', default=1, type=int, help='batch size for training.')
     parser.add_argument('--max_iterations', default=80000, type=int, help='max num of steps.')
     parser.add_argument('--display_interval', default=1, type=int, help='number of iters showing training loss.')
-    parser.add_argument('--test_interval', default=1000, type=int, help='number of iters for test.')
-    parser.add_argument('--snapshot_interval', default=1000, type=int, help='number of iters saving models.')
+    parser.add_argument('--test_interval', default=1, type=int, help='number of iters for test.')
+    parser.add_argument('--snapshot_interval', default=1, type=int, help='number of iters saving models.')
     parser.add_argument('--num_save_samples', default=10, type=int, help='number of sequences to be saved.')
     # gpu
     parser.add_argument('--n_gpu', default=1, type=int, help='how many GPUs to distribute the training across.')

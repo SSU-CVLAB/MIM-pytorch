@@ -3,6 +3,7 @@ import datetime
 import cv2
 import numpy as np
 from skimage.measure import compare_ssim
+from skimage.metrics import structural_similarity
 from utils import metrics
 from utils import preprocess
 import torch
@@ -111,9 +112,9 @@ def test(model, test_input_handle, configs, save_name, hidden_state, cell_state,
     real_input_flag = np.zeros(
         (configs.batch_size,
          configs.total_length - configs.input_length - 1,
+         configs.patch_size ** 2 * configs.img_channel,
          configs.img_width // configs.patch_size,
-         height // configs.patch_size,
-         configs.patch_size ** 2 * configs.img_channel))
+         height // configs.patch_size))
 
     with torch.no_grad():
         while not test_input_handle.no_batch_left():
@@ -129,13 +130,15 @@ def test(model, test_input_handle, configs, save_name, hidden_state, cell_state,
             else:
                 test_dat = test_ims
 
-            test_dat = np.split(test_dat, configs.n_gpu)
+            # test_dat = np.split(test_dat, configs.n_gpu)
             # 여기서 debug 바꿔줘야 함 현재 im_gen만 나오게 바껴져 있음 원래는 뭐였는지 살펴보기
-            img_gen = model.forward(test_dat, real_input_flag, hidden_state, cell_state, hidden_state_diff, cell_state_diff,
+            test_dat_tensor = torch.tensor(test_dat, device=configs.device, requires_grad=False)
+            img_gen = model.forward(test_dat_tensor, real_input_flag, hidden_state, cell_state, hidden_state_diff, cell_state_diff,
                 st_memory, conv_lstm_c, MIMB_oc_w, MIMB_ct_w, MIMN_oc_w, MIMN_ct_w)
+            img_gen = img_gen.clone().detach().to('cpu').numpy()
 
             # concat outputs of different gpus along batch
-            img_gen = np.concatenate(img_gen)
+            # img_gen = np.concatenate(img_gen)
             if len(img_gen.shape) > 3:
                 img_gen = preprocess.reshape_patch_back(img_gen, configs.patch_size)
 
@@ -159,13 +162,19 @@ def test(model, test_input_handle, configs, save_name, hidden_state, cell_state,
                     sharp[i] += np.max(
                         cv2.convertScaleAbs(cv2.Laplacian(pred_frm[b], 3)))
 
-                    score, _ = compare_ssim(gx[b], x[b], full=True, multichannel=True)
+                    structural_similarity
+
+                    gx_trans = np.transpose(gx[b], (1, 2, 0))
+                    x_trans = np.transpose(x[b], (1, 2, 0))
+                    score, _ = structural_similarity(gx_trans,
+                                                     x_trans,
+                                                     multichannel=True)
                     ssim[i] += score
 
             # save prediction examples
             if batch_id <= configs.num_save_samples:
                 path = os.path.join(res_path, str(batch_id))
-                os.mkdir(path)
+                # os.mkdir(path)
 
                 # if len(debug) != 0:
                 #     np.save(os.path.join(path, "f.npy"), debug)
