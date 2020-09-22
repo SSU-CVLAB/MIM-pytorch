@@ -245,7 +245,11 @@ def main():
         # loss2 = F.mse_loss(gen_images[0, 0], gt_ims[0, 0])
 
         MSE_loss = F.mse_loss(gen_images, gt_ims)
-        DOF_loss = DOFLoss.dense_optical_flow_loss(gen_images, gt_ims, args.img_channel)
+        gen_diff, gt_diff = DOFLoss.dense_optical_flow_loss(gen_images, gt_ims, args.img_channel)
+        gen_diff_tensor = torch.tensor(gen_diff, device=args.device)
+        gt_diff_tensor = torch.tensor(gt_diff, device=args.device)
+        DOF_loss = F.mse_loss(gen_diff_tensor, gt_diff_tensor)
+
         # 얘 MSE로 하던가 Norm2 마할라노비스 등등으로 loss 구한다음에 MSE_loss 랑 더해주고 역전파 시키기
         loss = MSE_loss + DOF_loss
         loss.backward()
