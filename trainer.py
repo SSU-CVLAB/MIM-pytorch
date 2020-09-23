@@ -159,16 +159,10 @@ def test(model, test_input_handle, configs, save_name, hidden_state, cell_state,
                 psnr[i] += metrics.batch_psnr(pred_frm, real_frm)
 
                 for b in range(configs.batch_size):
-                    sharp[i] += np.max(
-                        cv2.convertScaleAbs(cv2.Laplacian(pred_frm[b], 3)))
-
-                    structural_similarity
-
+                    sharp[i] += np.max(cv2.convertScaleAbs(cv2.Laplacian(pred_frm[b], 3)))
                     gx_trans = np.transpose(gx[b], (1, 2, 0))
                     x_trans = np.transpose(x[b], (1, 2, 0))
-                    score, _ = structural_similarity(gx_trans,
-                                                     x_trans,
-                                                     multichannel=True)
+                    score = structural_similarity(gx_trans, x_trans, multichannel=True)
                     ssim[i] += score
 
             # save prediction examples
@@ -185,7 +179,8 @@ def test(model, test_input_handle, configs, save_name, hidden_state, cell_state,
                     img_gt = np.uint8(test_ims[0, i, :, :, :] * 255)
                     if configs.img_channel == 2:
                         img_gt = img_gt[:, :, :1]
-                    cv2.imwrite(file_name, img_gt)
+                    img_gt = np.reshape(img_gt,(64,64,1))
+                    #cv2.imwrite(file_name, img)
 
                 for i in range(configs.total_length - configs.input_length):
                     name = 'pd' + str(i + 1 + configs.input_length) + '.png'
@@ -196,7 +191,7 @@ def test(model, test_input_handle, configs, save_name, hidden_state, cell_state,
                     img_pd = np.maximum(img_pd, 0)
                     img_pd = np.minimum(img_pd, 1)
                     img_pd = np.uint8(img_pd * 255)
-                    cv2.imwrite(file_name, img_pd)
+                    #cv2.imwrite(file_name, img_pd)
             test_input_handle.next()
 
     writer = [open('loss/mse.txt', 'a'),
