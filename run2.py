@@ -54,10 +54,10 @@ def parse_args():
                         help='whether to reverse the input images while training.')
     parser.add_argument('--batch_size', default=1, type=int, help='batch size for training.')
     parser.add_argument('--max_iterations', default=80000, type=int, help='max num of steps.')
-    parser.add_argument('--display_interval', default=1, type=int, help='number of iters showing training loss.')
-    parser.add_argument('--test_interval', default=1, type=int, help='number of iters for test.')
-    parser.add_argument('--snapshot_interval', default=1, type=int, help='number of iters saving models.')
-    parser.add_argument('--num_save_samples', default=10, type=int, help='number of sequences to be saved.')
+    parser.add_argument('--display_interval', default=100, type=int, help='number of iters showing training loss.')
+    parser.add_argument('--test_interval', default=1000, type=int, help='number of iters for test.')
+    parser.add_argument('--snapshot_interval', default=1000, type=int, help='number of iters saving models.')
+    parser.add_argument('--num_save_samples', default=19, type=int, help='number of sequences to be saved.')
     # gpu
     parser.add_argument('--n_gpu', default=1, type=int, help='how many GPUs to distribute the training across.')
     parser.add_argument('--allow_gpu_growth', default=False, type=bool, help='allow gpu growth')
@@ -254,7 +254,7 @@ def main():
         MSE_loss = F.mse_loss(gen_images, gt_ims)
 
         # 얘 MSE로 하던가 Norm2 마할라노비스 등등으로 loss 구한다음에 MSE_loss 랑 더해주고 역전파 시키기
-        loss = 0.3 * MSE_loss + 0.35 * 0.5 * DOF_Mloss + 0.35 * 0.5 * DOF_Dloss
+        loss = 0.5 * MSE_loss + 0.25 * DOF_Mloss + 0.25 * DOF_Dloss
         loss.backward()
         optimizer.step()
 

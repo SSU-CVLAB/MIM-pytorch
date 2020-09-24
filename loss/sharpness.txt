@@ -1,0 +1,13 @@
+2020-09-24 18:03:30test...sharpness per frame: 108.28416
+2020-09-24 18:16:44test...sharpness per frame: 113.05544
+2020-09-24 18:29:57test...sharpness per frame: 128.18713
+2020-09-24 18:43:10test...sharpness per frame: 125.01583
+2020-09-24 18:56:22test...sharpness per frame: 125.96238
+2020-09-24 19:09:33test...sharpness per frame: 128.80396
+2020-09-24 19:22:44test...sharpness per frame: 139.69801
+2020-09-24 19:35:55test...sharpness per frame: 135.65842
+2020-09-24 19:49:07test...sharpness per frame: 132.8307
+2020-09-24 20:02:18test...sharpness per frame: 137.35446
+2020-09-24 20:15:31test...sharpness per frame: 144.85742
+2020-09-24 20:28:42test...sharpness per frame: 144.10693
+2020-09-24 20:41:54test...sharpness per frame: 142.80396

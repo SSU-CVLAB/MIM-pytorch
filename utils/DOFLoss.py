@@ -37,6 +37,15 @@ def float_to_cv8u(array):
     return array
 
 
+def normalize(array):
+    arr_max = array.max()
+    arr_min = array.min()
+
+    array = 2 * (array - arr_min) / (arr_max - arr_min) - 1
+
+    return array
+
+
 def dense_optical_flow_loss(gen_images, gt_images, img_channel):
     optical = cv2.DISOpticalFlow_create(cv2.DISOPTICAL_FLOW_PRESET_FAST)
 
@@ -64,6 +73,9 @@ def dense_optical_flow_loss(gen_images, gt_images, img_channel):
             # 채널이 두개 나오는데 광도 및 방향으로 나옴, 그 다음으로 이미지 사이즈 나옴
             gen_flow = np.transpose(gen_flow, (2, 0, 1))
             gt_flow = np.transpose(gt_flow, (2, 0, 1))
+
+            gen_flow = normalize(gen_flow)
+            gt_flow = normalize(gt_flow)
 
             # gen_flow = optical.calc(gen_img1, gen_img2, None)
             # gt_flow = optical.calc(gt_img1, gt_img2, None)

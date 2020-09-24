@@ -1,0 +1,13 @@
+2020-09-24 18:03:30test...psnr per frame: 12.899988
+2020-09-24 18:16:44test...psnr per frame: 12.252691
+2020-09-24 18:29:57test...psnr per frame: 12.348878
+2020-09-24 18:43:10test...psnr per frame: 12.415282
+2020-09-24 18:56:22test...psnr per frame: 12.33887
+2020-09-24 19:09:33test...psnr per frame: 12.337183
+2020-09-24 19:22:44test...psnr per frame: 12.289965
+2020-09-24 19:35:55test...psnr per frame: 12.55732
+2020-09-24 19:49:07test...psnr per frame: 12.286044
+2020-09-24 20:02:18test...psnr per frame: 12.320674
+2020-09-24 20:15:31test...psnr per frame: 12.229127
+2020-09-24 20:28:42test...psnr per frame: 12.318626
+2020-09-24 20:41:54test...psnr per frame: 12.23821

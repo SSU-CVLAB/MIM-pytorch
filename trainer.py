@@ -90,7 +90,7 @@ def trainer(model, ims, real_input_flag, configs, itr, ims_reverse=None, device=
 def test(model, test_input_handle, configs, save_name, hidden_state, cell_state, hidden_state_diff, cell_state_diff,
                 st_memory, conv_lstm_c, MIMB_oc_w, MIMB_ct_w, MIMN_oc_w, MIMN_ct_w):
     test_input_handle.begin(do_shuffle=False)
-    res_path = os.path.join(configs.gen_frm_dir, str(save_name))
+    res_path = configs.gen_frm_dir
     if not os.path.isdir(res_path):
         os.mkdir(res_path)
     avg_mse = 0
@@ -167,8 +167,9 @@ def test(model, test_input_handle, configs, save_name, hidden_state, cell_state,
 
             # save prediction examples
             if batch_id <= configs.num_save_samples:
-                path = os.path.join(res_path, str(batch_id))
-                # os.mkdir(path)
+                path = os.path.join(res_path, str(save_name))
+                if not os.path.isdir(path):
+                    os.mkdir(path)
 
                 # if len(debug) != 0:
                 #     np.save(os.path.join(path, "f.npy"), debug)
@@ -179,11 +180,11 @@ def test(model, test_input_handle, configs, save_name, hidden_state, cell_state,
                     img_gt = np.uint8(test_ims[0, i, :, :, :] * 255)
                     if configs.img_channel == 2:
                         img_gt = img_gt[:, :, :1]
-                    img_gt = np.reshape(img_gt,(64,64,1))
-                    #cv2.imwrite(file_name, img)
+                    img_gt = np.transpose(img_gt,(1,2,0))
+                    cv2.imwrite(file_name, img_gt)
 
-                for i in range(configs.total_length - configs.input_length):
-                    name = 'pd' + str(i + 1 + configs.input_length) + '.png'
+                for i in range(configs.total_length-1):
+                    name = 'pd' + str(i) + '.png'
                     file_name = os.path.join(path, name)
                     img_pd = img_gen[0, i, :, :, :]
                     if configs.img_channel == 2:
@@ -191,7 +192,8 @@ def test(model, test_input_handle, configs, save_name, hidden_state, cell_state,
                     img_pd = np.maximum(img_pd, 0)
                     img_pd = np.minimum(img_pd, 1)
                     img_pd = np.uint8(img_pd * 255)
-                    #cv2.imwrite(file_name, img_pd)
+                    img_pd = np.transpose(img_pd, (1, 2, 0))
+                    cv2.imwrite(file_name, img_pd)
             test_input_handle.next()
 
     writer = [open('loss/mse.txt', 'a'),
@@ -202,10 +204,11 @@ def test(model, test_input_handle, configs, save_name, hidden_state, cell_state,
 
     print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'test...' + str(save_name))
     for write in writer:
-        write.write(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'test...')
+        write.write(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + 'test...')
 
     avg_mse = avg_mse / (batch_id * configs.batch_size * configs.n_gpu)
     print('mse per seq: ' + str(avg_mse))
+    writer[0].write('mse per seq: ' + str(avg_mse) + '\n')
 
     # for i in range(configs.total_length - configs.input_length):
     #     print(img_mse[i] / (batch_id * configs.batch_size * configs.n_gpu))
@@ -220,10 +223,10 @@ def test(model, test_input_handle, configs, save_name, hidden_state, cell_state,
     print('fmae per frame: ' + str(np.mean(fmae)))
     print('sharpness per frame: ' + str(np.mean(sharp)))
 
-    writer[1].write('psnr per frame: ' + str(np.mean(psnr)))
-    writer[2].write('ssim per frame: ' + str(np.mean(ssim)))
-    writer[3].write('fmae per frame: ' + str(np.mean(fmae)))
-    writer[4].write('sharpness per frame: ' + str(np.mean(sharp)))
+    writer[1].write('psnr per frame: ' + str(np.mean(psnr)) + '\n')
+    writer[2].write('ssim per frame: ' + str(np.mean(ssim)) + '\n')
+    writer[3].write('fmae per frame: ' + str(np.mean(fmae)) + '\n')
+    writer[4].write('sharpness per frame: ' + str(np.mean(sharp)) + '\n')
 
     # for i in range(configs.total_length - configs.input_length):
     #     print(psnr[i])

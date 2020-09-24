@@ -95,13 +95,13 @@ class MIM(nn.Module):  # ST-LSTM
                 st_memory, conv_lstm_c, MIMB_oc_w, MIMB_ct_w, MIMN_oc_w, MIMN_ct_w):
         gen_images = []
         for time_step in range(self.total_length - 1):  # 시간이 길다
-            print('time_step: ' + str(time_step))
+            # print('time_step: ' + str(time_step))
 
             if time_step < self.input_length:  #
                 x_gen = images[:, time_step]  # [batch, in_channel,in_height, in_width]
             else:
                 # mask
-                x_gen = torch.tensor(schedual_sampling_bool[:, time_step - self.input_length],
+                 x_gen = torch.tensor(schedual_sampling_bool[:, time_step - self.input_length],
                                      dtype=torch.double, device=self.device) * images[:, time_step] + \
                         torch.tensor(1 - schedual_sampling_bool[:, time_step - self.input_length],
                                      dtype=torch.double, device=self.device) * x_gen
@@ -113,7 +113,7 @@ class MIM(nn.Module):  # ST-LSTM
 
             # MIM_block
             for i in range(1, self.num_layers):
-                print('i: ' + str(i))
+                # print('i: ' + str(i))
                 if time_step > 0:
                     if i == 1:
                         # 먼저 MIM_N 계산
