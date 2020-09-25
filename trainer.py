@@ -196,11 +196,11 @@ def test(model, test_input_handle, configs, save_name, hidden_state, cell_state,
                     cv2.imwrite(file_name, img_pd)
             test_input_handle.next()
 
-    writer = [open('loss/mse.txt', 'a'),
-              open('loss/psnr.txt', 'a'),
-              open('loss/ssim.txt', 'a'),
-              open('loss/fmae.txt', 'a'),
-              open('loss/sharpness.txt', 'a')]
+    writer = [open('loss/mse.txt', 'a+'),
+              open('loss/psnr.txt', 'a+'),
+              open('loss/ssim.txt', 'a+'),
+              open('loss/fmae.txt', 'a+'),
+              open('loss/sharpness.txt', 'a+')]
 
     print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'test...' + str(save_name))
     for write in writer:

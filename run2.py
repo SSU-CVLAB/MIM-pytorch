@@ -247,14 +247,23 @@ def main():
         # loss2 = F.mse_loss(gen_images[0, 0], gt_ims[0, 0])
 
         gen_diff, gt_diff = DOFLoss.dense_optical_flow_loss(gen_images, gt_ims, args.img_channel)
-        gen_diff_tensor = torch.tensor(gen_diff, device=args.device)
-        gt_diff_tensor = torch.tensor(gt_diff, device=args.device)
-        DOF_Mloss = F.mse_loss(gen_diff_tensor[0], gt_diff_tensor[0])
-        DOF_Dloss = F.mse_loss(gen_diff_tensor[1], gt_diff_tensor[1])
+        gen_diff_tensor = torch.tensor(gen_diff, device=args.device, requires_grad=True)
+        gt_diff_tensor = torch.tensor(gt_diff, device=args.device, requires_grad=True)
+
+        # optical flow loss 벡터 구하는 식
+        diff = gt_diff_tensor - gen_diff_tensor
+        diff = torch.pow(diff, 2)
+        squared_distance = diff[0] + diff[1]
+        distance = torch.sqrt(squared_distance)
+        distance_sum = torch.mean(distance)
+
+        # DOF_Mloss = F.mse_loss(gen_diff_tensor[0], gt_diff_tensor[0])
+        # DOF_Dloss = F.mse_loss(gen_diff_tensor[1], gt_diff_tensor[1])
         MSE_loss = F.mse_loss(gen_images, gt_ims)
 
         # 얘 MSE로 하던가 Norm2 마할라노비스 등등으로 loss 구한다음에 MSE_loss 랑 더해주고 역전파 시키기
-        loss = 0.5 * MSE_loss + 0.25 * DOF_Mloss + 0.25 * DOF_Dloss
+        # loss = 0.7 * MSE_loss + 0.25 * DOF_Mloss + 0.25 * DOF_Dloss
+        loss = 0.7 * MSE_loss + 0.3 * distance_sum
         loss.backward()
         optimizer.step()
 
