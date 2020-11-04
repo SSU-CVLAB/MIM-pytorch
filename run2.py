@@ -17,26 +17,26 @@ def parse_args():
     # mode
     parser.add_argument("--is_training", default=True, type=bool, help="training or testing")
     # data I/O
-    parser.add_argument("--dataset_name", default="mnist", type=str, help="The name of dataset")
-    parser.add_argument("--train_data_paths", default="data/moving-mnist-example/moving-mnist-train.npz", type=str,
-                        help="train data paths")
-    parser.add_argument('--valid_data_paths', default='data/moving-mnist-example/moving-mnist-valid.npz', type=str,
-                        help='validation data paths.')
-    parser.add_argument('--save_dir', default='checkpoints/mnist_mim', type=str,
-                        help='dir to store trained net.')
+    parser.add_argument("--dataset_name", default="human", type=str, help="The name of dataset")
+    parser.add_argument("--train_data_paths", default="data/human/", type=str,
+    help="train data paths")
+    parser.add_argument('--valid_data_paths', default='data/human/', type=str,
+    help='validation data paths.')
+    parser.add_argument('--save_dir', default='checkpoints/human_mim', type=str,
+    help='dir to store trained net.')
     parser.add_argument('--save_variables_dir', default='variables/', type=str, help='dir to save variables')
-    parser.add_argument('--gen_frm_dir', default='results/mnist_mim', type=str, help='dir to store result.')
+    parser.add_argument('--gen_frm_dir', default='results/human', type=str, help='dir to store result.')
     parser.add_argument('--input_length', default=10, type=int, help='encoder hidden states.')
     parser.add_argument('--total_length', default=20, type=int, help='total input and output length.')
     parser.add_argument('--img_width', default=64, type=int, help='input image width.')
     parser.add_argument('--img_height', default=64, type=int, help='input image height.')
-    parser.add_argument('--img_channel', default=1, type=int, help='number of image channel.')
+    parser.add_argument('--img_channel', default=3, type=int, help='number of image channel.')
     # model[convlstm, predcnn, predrnn, predrnn_pp]
     parser.add_argument('--model_name', default='convlstm_net', type=str, help='The name of the architecture.')
     parser.add_argument('--pretrained_model', default='', type=str,
-                        help='file of a pretrained model to initialize from.')
+    help='file of a pretrained model to initialize from.')
     parser.add_argument('--num_hidden', default=[64, 64, 64, 64],
-                        help='COMMA separated number of units in a convlstm layer.')
+    help='COMMA separated number of units in a convlstm layer.')
     parser.add_argument('--filter_size', default=5, type=int, help='filter of a convlstm layer.')
     parser.add_argument('--stride', default=1, type=int, help='stride of a convlstm layer.')
     parser.add_argument('--patch_size', default=1, type=int, help='patch size on one dimension.')
@@ -47,14 +47,14 @@ def parse_args():
     parser.add_argument('--sampling_start_value', default=1.0, type=float, help='for scheduled sampling.')
     parser.add_argument('--sampling_changing_rate', default=0.00002, type=float, help='for scheduled sampling.')
     # optimization
-    parser.add_argument('--lr', default=0.001, type=float, help='base learning rate.')
-    parser.add_argument('--reverse_input', default=False, type=bool,
-                        help='whether to reverse the input frames while training.')
-    parser.add_argument('--reverse_img', default=False, type=bool,
-                        help='whether to reverse the input images while training.')
+    parser.add_argument('--lr', default=0.00001, type=float, help='base learning rate.')
+    parser.add_argument('--reverse_input', default=True, type=bool,
+    help='whether to reverse the input frames while training.')
+    parser.add_argument('--reverse_img', default=True, type=bool,
+    help='whether to reverse the input images while training.')
     parser.add_argument('--batch_size', default=1, type=int, help='batch size for training.')
     parser.add_argument('--max_iterations', default=80000, type=int, help='max num of steps.')
-    parser.add_argument('--display_interval', default=100, type=int, help='number of iters showing training loss.')
+    parser.add_argument('--display_interval', default=10, type=int, help='number of iters showing training loss.')
     parser.add_argument('--test_interval', default=1000, type=int, help='number of iters for test.')
     parser.add_argument('--snapshot_interval', default=1000, type=int, help='number of iters saving models.')
     parser.add_argument('--num_save_samples', default=19, type=int, help='number of sequences to be saved.')
@@ -64,8 +64,8 @@ def parse_args():
     parser.add_argument('--device', default='cuda', type=str, help='Training device')
 
     args = parser.parse_args()
-    return args
 
+    return args
 
 def schedule_sampling(eta, itr, args):
     if args.img_height > 0:
@@ -134,17 +134,17 @@ def detachVariables(hidden, cell, hidden_diff, cell_diff, st, convc, bct, boc, n
 
 
 def saveVariables(args, hidden_state, cell_state, hidden_state_diff, cell_state_diff, st_memory, conv_lstm_c, MIMB_ct_weight,
-                  MIMB_oc_weight, MIMN_ct_weight, MIMN_oc_weight):
-    torch.save(hidden_state, args.save_variables_dir + "hidden_state.pt")
-    torch.save(cell_state, args.save_variables_dir + "cell_state.pt")
-    torch.save(hidden_state_diff, args.save_variables_dir + "hidden_state_diff.pt")
-    torch.save(cell_state_diff, args.save_variables_dir + "cell_state_diff.pt")
-    torch.save(st_memory, args.save_variables_dir + "st_memory.pt")
-    torch.save(conv_lstm_c, args.save_variables_dir + "conv_lstm_c.pt")
-    torch.save(MIMB_ct_weight, args.save_variables_dir + "MIMB_ct_weight.pt")
-    torch.save(MIMB_oc_weight, args.save_variables_dir + "MIMB_oc_weight.pt")
-    torch.save(MIMN_ct_weight, args.save_variables_dir + "MIMN_ct_weight.pt")
-    torch.save(MIMN_oc_weight, args.save_variables_dir + "MIMN_oc_weight.pt")
+                  MIMB_oc_weight, MIMN_ct_weight, MIMN_oc_weight, itr):
+    torch.save(hidden_state, args.save_variables_dir + str(itr) + "hidden_state.pt")
+    torch.save(cell_state, args.save_variables_dir + str(itr) + "cell_state.pt")
+    torch.save(hidden_state_diff, args.save_variables_dir + str(itr) + "hidden_state_diff.pt")
+    torch.save(cell_state_diff, args.save_variables_dir + str(itr) + "cell_state_diff.pt")
+    torch.save(st_memory, args.save_variables_dir + str(itr) + "st_memory.pt")
+    torch.save(conv_lstm_c, args.save_variables_dir + str(itr) + "conv_lstm_c.pt")
+    torch.save(MIMB_ct_weight, args.save_variables_dir + str(itr) + "MIMB_ct_weight.pt")
+    torch.save(MIMB_oc_weight, args.save_variables_dir + str(itr) + "MIMB_oc_weight.pt")
+    torch.save(MIMN_ct_weight, args.save_variables_dir + str(itr) + "MIMN_ct_weight.pt")
+    torch.save(MIMN_oc_weight, args.save_variables_dir + str(itr) + "MIMN_oc_weight.pt")
 
 
 def loadVariables(args):
@@ -209,85 +209,155 @@ def main():
     # MSELoss = torch.nn.MSELoss()
 
     for itr in range(1, args.max_iterations + 1):
-        optimizer.zero_grad()
-
         if train_input_handle.no_batch_left():
             train_input_handle.begin(do_shuffle=True)
 
+        # input data 가져오기 및 reshape_patch 적용
         ims = train_input_handle.get_batch()
-        ims_reverse = None
-        if args.reverse_img:
-            ims_reverse = ims[:, :, :, ::-1]
-            ims_reverse = preprocess.reshape_patch(ims_reverse, args.patch_size)
         ims = preprocess.reshape_patch(ims, args.patch_size)
         eta, real_input_flag = schedule_sampling(eta, itr, args)
 
-        ims2 = ims[:, :args.total_length]
-        ims_tensor = torch.tensor(ims2, device=device)
+        # ims tensor로 변경하고 gpu 설정해줌
+        # 전방 전파 후 예측 영상과 gt 영상 생성
+        ims_tensor = torch.tensor(ims, device=device)
         gen_images = model.forward(ims_tensor, real_input_flag, hidden_state, cell_state,
                                    hidden_state_diff, cell_state_diff, st_memory, conv_lstm_c,
                                    MIMB_oc_weight, MIMB_ct_weight, MIMN_oc_weight, MIMN_ct_weight)
-        gt_ims = torch.tensor(ims2[:, 1:], device=device)
+        gt_ims = torch.tensor(ims[:, 1:], device=device)
 
-        # tmp = gt_ims[0, 1].clone().to('cpu').numpy() * 255
-        # tmp = np.transpose(tmp, (1, 2, 0))
-        # print("tmp shape : {}".format(tmp.shape))
-        # cv2.imshow("gt", tmp)
-        #
-        # tmp2 = gen_images[0, 1].clone().detach().to('cpu').numpy() * 255
-        # tmp2 = np.transpose(tmp2, (1, 2, 0))
-        # print("tmp2 shape : {}".format(tmp2.shape))
-        # cv2.imshow("gen image", tmp2)
-        #
-        # cv2.waitKey(0)
-        # cv2.destroyAllWindows()
-        #
-        # optimizer.zero_grad()
-        # diffrence = gen_images[0, 0] - gt_ims[0, 0]
-        # loss2 = F.mse_loss(gen_images[0, 0], gt_ims[0, 0])
-
+        # optical flow loss 적용
         gen_diff, gt_diff = DOFLoss.dense_optical_flow_loss(gen_images, gt_ims, args.img_channel)
-        gen_diff_tensor = torch.tensor(gen_diff, device=args.device, requires_grad=True)
-        gt_diff_tensor = torch.tensor(gt_diff, device=args.device, requires_grad=True)
-
-        # optical flow loss 벡터 구하는 식
-        diff = gt_diff_tensor - gen_diff_tensor
-        diff = torch.pow(diff, 2)
-        squared_distance = diff[0] + diff[1]
-        distance = torch.sqrt(squared_distance)
-        distance_sum = torch.mean(distance)
-
-        # DOF_Mloss = F.mse_loss(gen_diff_tensor[0], gt_diff_tensor[0])
-        # DOF_Dloss = F.mse_loss(gen_diff_tensor[1], gt_diff_tensor[1])
+        optical_loss = DOFLoss.calc_optical_flow_loss(gen_diff, gt_diff, args.device)
         MSE_loss = F.mse_loss(gen_images, gt_ims)
 
-        # 얘 MSE로 하던가 Norm2 마할라노비스 등등으로 loss 구한다음에 MSE_loss 랑 더해주고 역전파 시키기
-        # loss = 0.7 * MSE_loss + 0.25 * DOF_Mloss + 0.25 * DOF_Dloss
-        loss = 0.7 * MSE_loss + 0.3 * distance_sum
+        # 역전파 적용
+        optimizer.zero_grad()
+        # loss = 0.8 * MSE_loss + 0.2 * optical_loss
+        loss = MSE_loss
         loss.backward()
         optimizer.step()
 
-        loss1 = loss.detach_()
+        # 출력용 loss 저장
+        loss_print = loss.detach_()
+        flag = 1
 
+        # 똑같은 computation graph 사용을 막기 위해 그래프와 학습 변수들을 분리해 줌
+        del gen_images
+        detachVariables(hidden_state, cell_state, hidden_state_diff, cell_state_diff, st_memory, conv_lstm_c,
+                        MIMB_ct_weight, MIMB_oc_weight, MIMN_ct_weight, MIMN_oc_weight)
+
+        ims_reverse = None
+        if args.reverse_img:
+            ims_reverse = ims[:, :, :, ::-1]
+            ims_tensor = torch.tensor(ims_reverse.copy(), device=device)
+            gen_images = model.forward(ims_tensor, real_input_flag, hidden_state, cell_state,
+                                       hidden_state_diff, cell_state_diff, st_memory, conv_lstm_c,
+                                       MIMB_oc_weight, MIMB_ct_weight, MIMN_oc_weight, MIMN_ct_weight)
+            gt_ims = torch.tensor(ims_reverse[:, 1:].copy(), device=device)
+
+            gen_diff, gt_diff = DOFLoss.dense_optical_flow_loss(gen_images, gt_ims, args.img_channel)
+            optical_loss = DOFLoss.calc_optical_flow_loss(gen_diff, gt_diff, args.device)
+            MSE_loss = F.mse_loss(gen_images, gt_ims)
+
+            optimizer.zero_grad()
+            # loss = 0.8 * MSE_loss + 0.2 * optical_loss
+            loss = MSE_loss
+            loss.backward()
+            optimizer.step()
+
+            loss_print += loss.detach_()
+            flag += 1
+
+            # 똑같은 computation graph 사용을 막기 위해 그래프와 학습 변수들을 분리해 줌
+            del gen_images
+            detachVariables(hidden_state, cell_state, hidden_state_diff, cell_state_diff, st_memory, conv_lstm_c,
+                            MIMB_ct_weight, MIMB_oc_weight, MIMN_ct_weight, MIMN_oc_weight)
+
+        if args.reverse_input:
+            ims_rev = ims[:, ::-1]
+            ims_tensor = torch.tensor(ims_rev.copy(), device=device)
+            gen_images = model.forward(ims_tensor, real_input_flag, hidden_state, cell_state,
+                                       hidden_state_diff, cell_state_diff, st_memory, conv_lstm_c,
+                                       MIMB_oc_weight, MIMB_ct_weight, MIMN_oc_weight, MIMN_ct_weight)
+            gt_ims = torch.tensor(ims_rev[:, 1:].copy(), device=device)
+
+            gen_diff, gt_diff = DOFLoss.dense_optical_flow_loss(gen_images, gt_ims, args.img_channel)
+            optical_loss = DOFLoss.calc_optical_flow_loss(gen_diff, gt_diff, args.device)
+            MSE_loss = F.mse_loss(gen_images, gt_ims)
+
+            optimizer.zero_grad()
+            # loss = 0.8 * MSE_loss + 0.2 * optical_loss
+            loss = MSE_loss
+            loss.backward()
+            optimizer.step()
+
+            loss_print += loss.detach_()
+            flag += 1
+
+            # 똑같은 computation graph 사용을 막기 위해 그래프와 학습 변수들을 분리해 줌
+            del gen_images
+            detachVariables(hidden_state, cell_state, hidden_state_diff, cell_state_diff, st_memory, conv_lstm_c,
+                            MIMB_ct_weight, MIMB_oc_weight, MIMN_ct_weight, MIMN_oc_weight)
+
+            if args.reverse_img:
+                ims_rev = ims_reverse[:, ::-1]
+                ims_tensor = torch.tensor(ims_rev.copy(), device=device)
+                gen_images = model.forward(ims_tensor, real_input_flag, hidden_state, cell_state,
+                                           hidden_state_diff, cell_state_diff, st_memory, conv_lstm_c,
+                                           MIMB_oc_weight, MIMB_ct_weight, MIMN_oc_weight, MIMN_ct_weight)
+                gt_ims = torch.tensor(ims_rev[:, 1:].copy(), device=device)
+
+                gen_diff, gt_diff = DOFLoss.dense_optical_flow_loss(gen_images, gt_ims, args.img_channel)
+                optical_loss = DOFLoss.calc_optical_flow_loss(gen_diff, gt_diff, args.device)
+                MSE_loss = F.mse_loss(gen_images, gt_ims)
+
+                optimizer.zero_grad()
+                # loss = 0.8 * MSE_loss + 0.2 * optical_loss
+                loss = MSE_loss
+                loss.backward()
+                optimizer.step()
+
+                loss_print += loss.detach_()
+                flag += 1
+
+                # 똑같은 computation graph 사용을 막기 위해 그래프와 학습 변수들을 분리해 줌
+                del gen_images
+                detachVariables(hidden_state, cell_state, hidden_state_diff, cell_state_diff, st_memory, conv_lstm_c,
+                                MIMB_ct_weight, MIMB_oc_weight, MIMN_ct_weight, MIMN_oc_weight)
+
+        # 전방전파 한 만큼 loss 나눠줌
+        loss_print = loss_print.item() / flag
+
+        # gen_diff_tensor = torch.tensor(gen_diff, device=args.device, requires_grad=True)
+        # gt_diff_tensor = torch.tensor(gt_diff, device=args.device, requires_grad=True)
+        #
+        # # optical flow loss 벡터 구하는 식
+        # diff = gt_diff_tensor - gen_diff_tensor
+        # diff = torch.pow(diff, 2)
+        # squared_distance = diff[0] + diff[1]
+        # distance = torch.sqrt(squared_distance)
+        # distance_sum = torch.mean(distance)
+
+        # DOF_Mloss = F.mse_loss(gen_diff_tensor[0], gt_diff_tensor[0])
+        # DOF_Dloss = F.mse_loss(gen_diff_tensor[1], gt_diff_tensor[1])
+
+        # 얘 MSE로 하던가 Norm2 마할라노비스 등등으로 loss 구한다음에 MSE_loss 랑 더해주고 역전파 시키기
+        # loss = 0.7 * MSE_loss + 0.25 * DOF_Mloss + 0.25 * DOF_Dloss
         # loss = trainer.trainer(model, ims, real_input_flag, args, itr, ims_reverse, device, optimizer, MSELoss)
 
         if itr % args.snapshot_interval == 0:
             # 모델 세이브 할때 detachVariable에 들어가는 애들 다 바꿔줘야 함
             saveVariables(args, hidden_state, cell_state, hidden_state_diff, cell_state_diff, st_memory, conv_lstm_c,
-                        MIMB_ct_weight, MIMB_oc_weight, MIMN_ct_weight, MIMN_oc_weight)
+                          MIMB_ct_weight, MIMB_oc_weight, MIMN_ct_weight, MIMN_oc_weight, itr)
             model.save(itr)
 
         if itr % args.test_interval == 0:
             trainer.test(model, test_input_handle, args, itr, hidden_state, cell_state, hidden_state_diff, cell_state_diff,
-                st_memory, conv_lstm_c, MIMB_oc_weight, MIMB_ct_weight, MIMN_oc_weight, MIMN_ct_weight)
+                         st_memory, conv_lstm_c, MIMB_oc_weight, MIMB_ct_weight, MIMN_oc_weight, MIMN_ct_weight)
 
         if itr % args.display_interval == 0:
             print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'itr: ' + str(itr))
-            print('training loss: ' + str(loss1.item()))
-
-        del gen_images
-        detachVariables(hidden_state, cell_state, hidden_state_diff, cell_state_diff, st_memory, conv_lstm_c,
-                        MIMB_ct_weight, MIMB_oc_weight, MIMN_ct_weight, MIMN_oc_weight)
+            print('training loss: ' + str(loss_print))
 
         train_input_handle.next()
 

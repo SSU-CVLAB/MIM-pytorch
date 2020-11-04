@@ -89,7 +89,7 @@ def trainer(model, ims, real_input_flag, configs, itr, ims_reverse=None, device=
 
 def test(model, test_input_handle, configs, save_name, hidden_state, cell_state, hidden_state_diff, cell_state_diff,
                 st_memory, conv_lstm_c, MIMB_oc_w, MIMB_ct_w, MIMN_oc_w, MIMN_ct_w):
-    test_input_handle.begin(do_shuffle=False)
+    test_input_handle.begin(do_shuffle=True)
     res_path = configs.gen_frm_dir
     if not os.path.isdir(res_path):
         os.mkdir(res_path)

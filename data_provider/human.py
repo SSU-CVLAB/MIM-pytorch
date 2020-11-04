@@ -54,7 +54,7 @@ class InputHandle:
             return None
 
         input_batch = np.zeros(
-            (self.mini_batch_size, self.current_input_length, self.image_width, self.image_width, self.channel)).astype(
+            (self.mini_batch_size, self.current_input_length, self.channel, self.image_width, self.image_width)).astype(
             self.input_data_type)
 
         for i in range(self.mini_batch_size):
@@ -118,7 +118,7 @@ class DataProcess:
                 image = cv2.resize(image, (self.image_width, self.image_width))
             #image = cv2.resize(image[100:-100,100:-100,:], (self.image_width, self.image_width),
             #                   interpolation=cv2.INTER_LINEAR)
-            frames_np.append(np.array(image, dtype=np.float32) / 255.0)
+            frames_np.append(np.transpose(np.array(image, dtype=np.float32) / 255.0, [2, 0, 1]))
             frames_file_name.append(filename)
 #             if len(frames_np) % 100 == 0: print len(frames_np)
             #if len(frames_np) % 1000 == 0: break

@@ -1,0 +1,4 @@
+2020-10-22 15:18:33test...psnr per frame: 15.967511
+2020-10-22 16:10:53test...psnr per frame: 16.21133
+2020-10-22 17:03:14test...psnr per frame: 16.26818
+2020-10-22 17:55:34test...psnr per frame: 15.5852585

@@ -1,0 +1,4 @@
+2020-10-22 15:18:33test...sharpness per frame: 252.44556
+2020-10-22 16:10:53test...sharpness per frame: 252.46834
+2020-10-22 17:03:14test...sharpness per frame: 252.45743
+2020-10-22 17:55:34test...sharpness per frame: 252.44653
